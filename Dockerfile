@@ -1,52 +1,102 @@
-# Dockerfile for PaaS Deployment (Render, Railway, Heroku)
-# Builds both Frontend and Backend in a single image.
+# =========================================
+# TelePlay - Docker Compose
+# =========================================
+#
+# Usage:
+#   1. Copy .env.example to .env and fill in your values
+#   2. Run: docker-compose up -d
+#
+# Services:
+#   - db: PostgreSQL database
+#   - backend: FastAPI + Telegram Bot
+#   - web: React web interface (nginx)
+#
+# =========================================
 
-# ----------------------------
-# Stage 1: Build Frontend
-# ----------------------------
-FROM node:20-alpine as frontend-builder
-WORKDIR /web-build
+services:
+  # -----------------------------------------
+  # PostgreSQL Database
+  # -----------------------------------------
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-telegram_tv}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - telegram-tv-network
 
-# Copy frontend dependency files
-COPY web/package*.json ./
-RUN npm ci
+  # -----------------------------------------
+  # Backend API + Telegram Bot
+  # -----------------------------------------
+  backend:
+    env_file:
+      - .env
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-telegram_tv}
 
-# Copy frontend source code
-COPY web/ ./
-RUN npm run build
+      # Redis (Optional - Currently unused)
+      # REDIS_URL: redis://redis:6379
 
+      # Telegram (from .env file)
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_STORAGE_CHANNEL_ID: ${TELEGRAM_STORAGE_CHANNEL_ID}
 
-# ----------------------------
-# Stage 2: Build Backend & Serve
-# ----------------------------
-FROM python:3.11-slim
+      # Security
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRY_MINUTES: ${JWT_EXPIRY_MINUTES:-10080}
 
-WORKDIR /app
+      # Web URL
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      # Persist Telegram session files only (do not mount over /app — that hides rebuilt code)
+      - telegram_session:/app/session
+    networks:
+      - telegram-tv-network
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+  # -----------------------------------------
+  # Web Interface (React + Nginx)
+  # -----------------------------------------
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-80}:80"
+    networks:
+      - telegram-tv-network
 
-# Install Python dependencies
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# -----------------------------------------
+# Volumes
+# -----------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  telegram_session:
+    driver: local
 
-# Copy backend code
-COPY backend/app/ ./app/
-
-# Copy built frontend assets from Stage 1 to Backend's static folder
-# FastAPI is configured to look in 'app/static' to serve the SPA
-COPY --from=frontend-builder /web-build/dist ./app/static
-
-# Create session directory
-RUN mkdir -p /app/session && chmod 777 /app/session
-
-# Set environment variable to tell FastAPI we are in production/monolith mode if needed
-ENV MULTI_CONTAINER_SETUP=false
-
-# Expose port
-EXPOSE 8000
-
-# Run FastAPI
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# -----------------------------------------
+# Networks
+# -----------------------------------------
+networks:
+  telegram-tv-network:
+    driver: bridge
