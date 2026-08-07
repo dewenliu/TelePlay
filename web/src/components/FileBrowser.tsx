@@ -57,6 +57,8 @@ export default function FileBrowser() {
         setSelectedFiles
     } = useAppStore();
 
+    const t = useT();
+
     // Pagination state
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
