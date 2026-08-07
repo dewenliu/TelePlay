@@ -638,7 +638,7 @@ export default function FileBrowser() {
                              <div className="w-px h-3 bg-white/[0.1] mx-1"></div>
                              <button
                                  onClick={() => setViewMode('grid')}
-                                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'}`}
+                                 className={"p-1.5 rounded-md transition-all " + (viewMode === 'grid' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]')}
                              >
                                  <Grid className="w-4 h-4" />
                              </button>
