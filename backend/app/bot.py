@@ -520,10 +520,19 @@ async def handle_file(client, message: Message):
         media = message.document
         file_type = "document"
     elif message.photo:
-        return await message.reply("❌ Photos are not supported yet.")
+        # Photos were previously rejected here ("not supported yet") but the README and
+        # file_type enum both already support 'image', and the File model + frontend filter
+        # are wired for it. The only piece missing was this early return. Use the largest
+        # available photo size so the streamed/original file is high-res; Telegram exposes
+        # them in descending order on PhotoSize array.
+        sizes = list(getattr(message.photo, "sizes", []) or [])
+        if not sizes:
+            return
+        media = sizes[-1]
+        file_type = "image"
     else:
         return
-    
+
     status_msg = await message.reply("📥 Processing file...")
     
     try:

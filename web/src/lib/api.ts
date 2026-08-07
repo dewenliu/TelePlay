@@ -290,14 +290,14 @@ export const useUpdateFile = () => {
     return useMutation({
         mutationFn: async ({ id, ...data }: { id: number; file_name?: string; folder_id?: number | null }) => {
             const { data: result } = await api.patch<TelegramFile>(`/files/${id}`, data);
-            return result;
+            return { result, data };
         },
-        onSuccess: () => {
-            // Invalidate both files and folders to ensure UI updates for moves
-            queryClient.invalidateQueries({ queryKey: ['files'] });
-            queryClient.invalidateQueries({ queryKey: ['folders'] });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'] });
-        },
+        // Note: do NOT auto-invalidate here. The caller knows whether this is a rename
+        // (same folder, just refresh name in place) or a move (drop into another folder).
+        // Auto-invalidating every ['files'] query causes the cumulative `allFiles` list
+        // to refetch every page and produces a visible flash. FileBrowser / GlobalContextMenu
+        // handle the cache updates explicitly after a successful mutation.
+        onSuccess: () => {},
     });
 };
 
@@ -319,10 +319,34 @@ export const useDeleteFiles = () => {
         mutationFn: async (ids: number[]) => {
             await api.post('/files/batch-delete', ids as any); // Axios automatically handles array as JSON body
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['files'] });
-             queryClient.invalidateQueries({ queryKey: ['folders'] }); // Files might be inside folders affecting counts
-             queryClient.invalidateQueries({ queryKey: ['storage'] });
+        onSuccess: (_data, ids) => {
+            // Predicate-based invalidation: invalidate every ['files', ...] query (any folder,
+            // any page, any filter) so the cumulative `allFiles` list in FileBrowser re-syncs
+            // with the server after deletions. Without the predicate function, React Query
+            // only invalidates queries whose key is *exactly* ['files'], missing the
+            // parameterized ones like ['files', 5, 'video', 'foo', 1] that FileBrowser uses.
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' }); // Files might be inside folders affecting counts
+            queryClient.invalidateQueries({ queryKey: ['storage'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
+            // Remove the deleted ids from any active query cache so the UI updates immediately,
+            // even before the refetched data lands. We do this by setting fresh data on the
+            // current page query.
+            const queries = queryClient.getQueryCache().findAll({ queryKey: ['files'] });
+            queries.forEach((q) => {
+                const cached = q.state.data as FileListResponse | undefined;
+                if (cached && Array.isArray(cached.files)) {
+                    const idSet = new Set(ids);
+                    const next = cached.files.filter((f) => !idSet.has(f.id));
+                    if (next.length !== cached.files.length) {
+                        queryClient.setQueryData(q.queryKey, {
+                            ...cached,
+                            files: next,
+                            total: Math.max(0, cached.total - (cached.files.length - next.length)),
+                        });
+                    }
+                }
+            });
         },
     });
 };
@@ -333,10 +357,30 @@ export const useMoveFiles = () => {
         mutationFn: async ({ ids, folderId }: { ids: number[]; folderId: number | null }) => {
             await api.post('/files/batch-move', { ids, folder_id: folderId });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['files'] });
-            queryClient.invalidateQueries({ queryKey: ['folders'] });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'] });
+        onSuccess: (_data, vars) => {
+            // Same predicate fix as useDeleteFiles: invalidate every ['files', ...] query so
+            // the cumulative list re-syncs. Without this, FileBrowser's `allFiles` keeps the
+            // moved file visible until manual refresh.
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
+            // Optimistic-ish UI update: drop the moved ids from every cached files list
+            // immediately so the user doesn't see stale rows waiting for the refetch.
+            const queries = queryClient.getQueryCache().findAll({ queryKey: ['files'] });
+            queries.forEach((q) => {
+                const cached = q.state.data as FileListResponse | undefined;
+                if (cached && Array.isArray(cached.files)) {
+                    const idSet = new Set(vars.ids);
+                    const next = cached.files.filter((f) => !idSet.has(f.id));
+                    if (next.length !== cached.files.length) {
+                        queryClient.setQueryData(q.queryKey, {
+                            ...cached,
+                            files: next,
+                            total: Math.max(0, cached.total - (cached.files.length - next.length)),
+                        });
+                    }
+                }
+            });
         },
     });
 };
@@ -388,9 +432,23 @@ export const useMoveFolders = () => {
         mutationFn: async ({ ids, folderId }: { ids: number[]; folderId: number | null }) => {
             await api.post('/folders/batch-move', { ids, folder_id: folderId });
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['folders'] });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'] });
+        onSuccess: (_data, vars) => {
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
+            // Drop the moved folder ids from every cached folders list so the UI updates
+            // immediately instead of waiting for a refetch.
+            const idSet = new Set(vars.ids);
+            const queries = queryClient.getQueryCache().findAll({ queryKey: ['folders'] });
+            queries.forEach((q) => {
+                const cached = q.state.data as Folder[] | undefined;
+                if (cached && Array.isArray(cached)) {
+                    const next = cached.filter((f) => !idSet.has(f.id));
+                    if (next.length !== cached.length) {
+                        queryClient.setQueryData(q.queryKey, next);
+                    }
+                }
+            });
         },
     });
 };
@@ -468,11 +526,22 @@ export const useDeleteFolders = () => {
         mutationFn: async (ids: number[]) => {
             await api.post('/folders/batch-delete', ids as any);
         },
-        onSuccess: () => {
-             queryClient.invalidateQueries({ queryKey: ['folders'] });
-             queryClient.invalidateQueries({ queryKey: ['folderTree'] });
-             queryClient.invalidateQueries({ queryKey: ['files'] });
-             queryClient.invalidateQueries({ queryKey: ['storage'] });
+        onSuccess: (_data, ids) => {
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['storage'], refetchType: 'none' });
+            const idSet = new Set(ids);
+            const queries = queryClient.getQueryCache().findAll({ queryKey: ['folders'] });
+            queries.forEach((q) => {
+                const cached = q.state.data as Folder[] | undefined;
+                if (cached && Array.isArray(cached)) {
+                    const next = cached.filter((f) => !idSet.has(f.id));
+                    if (next.length !== cached.length) {
+                        queryClient.setQueryData(q.queryKey, next);
+                    }
+                }
+            });
         },
     });
 };

@@ -1,8 +1,9 @@
-import { Files, Clock, PlayCircle, LogOut, HardDrive, X, Users } from 'lucide-react';
+import { Files, Clock, PlayCircle, LogOut, HardDrive, X, Users, Globe } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { useAppStore } from '../lib/store';
 import { useStorageStats, formatFileSize, useLogoutAll } from '../lib/api';
 import { useState } from 'react';
+import { useT, useLang, LANGUAGES, Lang } from '../lib/i18n';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -10,6 +11,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+    const t = useT();
+    const [lang, setLang] = useLang();
     const { activeSection, setActiveSection } = useAppStore();
     const { data: storage } = useStorageStats();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -26,16 +29,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const handleLogoutAll = async () => {
         try {
             await logoutAllMutation.mutateAsync();
-            handleLogout(); // Clear local session too
+            handleLogout();
         } catch (error) {
             console.error('Failed to logout all', error);
-            handleLogout(); // Fallback to local logout
+            handleLogout();
         }
     };
 
     const handleNavClick = (section: 'files' | 'recent' | 'continue_watching') => {
         setActiveSection(section);
-        onClose(); // Close sidebar on mobile when item clicked
+        onClose();
     };
 
     const NavItem = ({ section, icon: Icon, label }: { section: 'files' | 'recent' | 'continue_watching', icon: any, label: string }) => (
@@ -55,7 +58,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     return (
         <>
             {/* Mobile Overlay */}
-            <div 
+            <div
                 className={`fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm transition-opacity duration-300 ${
                     isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 }`}
@@ -71,17 +74,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 {/* Logo Area */}
                 <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img 
-                            src={logo} 
-                            alt="TelePlay Logo" 
-                            className="w-8 h-8 rounded-lg shadow-lg shadow-primary-500/20 object-contain" 
+                        <img
+                            src={logo}
+                            alt="TelePlay Logo"
+                            className="w-8 h-8 rounded-lg shadow-lg shadow-primary-500/20 object-contain"
                         />
                         <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
                             TelePlay
                         </span>
                     </div>
-                    {/* Close button for mobile */}
-                    <button 
+                    <button
                         onClick={onClose}
                         className="md:hidden p-1 text-dark-400 hover:text-white"
                     >
@@ -91,16 +93,39 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 {/* Navigation */}
                 <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-                    <NavItem section="files" icon={Files} label="My Files" />
-                    <NavItem section="recent" icon={Clock} label="Recently Added" />
-                    <NavItem section="continue_watching" icon={PlayCircle} label="Continue Watching" />
+                    <NavItem section="files" icon={Files} label={t('sidebar.files')} />
+                    <NavItem section="recent" icon={Clock} label={t('sidebar.recent')} />
+                    <NavItem section="continue_watching" icon={PlayCircle} label={t('sidebar.continueWatching')} />
                 </nav>
+
+                {/* Language switcher */}
+                <div className="px-4 pb-2">
+                    <div className="flex items-center gap-2 mb-1.5 text-xs text-dark-400">
+                        <Globe className="w-3.5 h-3.5" />
+                        <span>{t('sidebar.language')}</span>
+                    </div>
+                    <div className="flex gap-1 bg-dark-800/50 border border-white/[0.04] rounded-lg p-0.5">
+                        {LANGUAGES.map((l) => (
+                            <button
+                                key={l.code}
+                                onClick={() => setLang(l.code as Lang)}
+                                className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+                                    lang === l.code
+                                        ? 'bg-primary-600 text-white'
+                                        : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
+                                }`}
+                            >
+                                {l.native}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
                 {/* Storage Info */}
                 <div className="p-4 m-3 rounded-xl bg-dark-800/50 border border-white/[0.04]">
                     <div className="flex items-center gap-2 mb-2 text-sm text-dark-300">
                         <HardDrive className="w-4 h-4" />
-                        <span>Storage</span>
+                        <span>{t('sidebar.storage')}</span>
                     </div>
                     {storage ? (
                         <>
@@ -153,7 +178,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 onClick={() => setShowLogoutConfirm(false)}
                                 className="flex-1 px-4 py-2 rounded-lg text-dark-300 hover:bg-white/5 transition-colors font-medium"
                             >
-                                Cancel
+                                {t('modal.cancel')}
                             </button>
                             <button
                                 onClick={handleLogout}
@@ -184,14 +209,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 onClick={() => setShowLogoutAllConfirm(false)}
                                 className="flex-1 px-4 py-2 rounded-lg text-dark-300 hover:bg-white/5 transition-colors font-medium"
                             >
-                                Cancel
+                                {t('modal.cancel')}
                             </button>
                             <button
                                 onClick={handleLogoutAll}
                                 className="flex-1 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
                                 disabled={logoutAllMutation.isPending}
                             >
-                                {logoutAllMutation.isPending ? 'Logging out...' : 'Logout All'}
+                                {logoutAllMutation.isPending ? '...' : 'Logout All'}
                             </button>
                         </div>
                     </div>

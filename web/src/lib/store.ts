@@ -44,6 +44,10 @@ interface AppState {
     showNewFolder: boolean;
     setShowNewFolder: (show: boolean) => void;
 
+    // Upload modal (tells the user to send the file to the Telegram bot).
+    showUpload: boolean;
+    setShowUpload: (show: boolean) => void;
+
     deleteConfirm: { type: 'file' | 'folder' | 'multiple'; items: (TelegramFile | Folder)[] } | null;
     setDeleteConfirm: (item: { type: 'file' | 'folder' | 'multiple'; items: (TelegramFile | Folder)[] } | null) => void;
 
@@ -155,6 +159,9 @@ export const useAppStore = create<AppState>((set) => ({
 
     showNewFolder: false,
     setShowNewFolder: (show) => set({ showNewFolder: show }),
+
+    showUpload: false,
+    setShowUpload: (show) => set({ showUpload: show }),
 
     deleteConfirm: null,
     setDeleteConfirm: (item) => set({ deleteConfirm: item }),

@@ -3,13 +3,16 @@ import { useEffect, useState } from 'react';
 import { useCurrentUser, useLoginWithCode, useBotInfo, useGenerateLoginCode, useVerifyLoginCode } from './lib/api';
 import FileBrowser from './components/FileBrowser';
 import GlobalContextMenu from './components/GlobalContextMenu';
+import MediaPlayer from './components/MediaPlayer';
 import logo from './assets/logo.png';
+import { useT } from './lib/i18n';
 
 function AuthCallback() {
+    const t = useT();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const token = searchParams.get('token');
-    const [status, setStatus] = useState('Processing...');
+    const [status, setStatus] = useState(t('app.processing'));
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
@@ -19,21 +22,21 @@ function AuthCallback() {
                 localStorage.setItem('access_token', token);
                 const check = localStorage.getItem('access_token');
                 if (check === token) {
-                    setStatus('✅ Token saved! Redirecting...');
+                    setStatus(t('app.tokenSaved'));
                     setSaved(true);
                     setTimeout(() => {
                         navigate('/', { replace: true });
                     }, 500);
                 } else {
-                    setStatus('❌ Failed to save token to localStorage');
+                    setStatus(t('app.tokenSaveFailed'));
                 }
             } catch (e) {
-                setStatus(`❌ Error: ${e}`);
+                setStatus(`❌ ${e}`);
             }
         } else {
-            setStatus('❌ No token in URL');
+            setStatus(t('app.noToken'));
         }
-    }, [token, navigate]);
+    }, [token, navigate, t]);
 
     // If saved but still on this page, try redirect again
     useEffect(() => {
@@ -57,7 +60,7 @@ function AuthCallback() {
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText(token);
-                                setStatus('Token copied! Open browser DevTools console and run:\nlocalStorage.setItem("access_token", "paste-token-here")');
+                                setStatus(t('app.copyTokenHint'));
                             }}
                             className="text-xs text-primary-400 break-all text-left hover:text-primary-300"
                         >
@@ -69,7 +72,7 @@ function AuthCallback() {
                                 className="inline-block px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded text-white text-sm"
                                 onClick={() => localStorage.setItem('access_token', token)}
                             >
-                                Try Manual Login →
+                                {t('app.manualLogin')}
                             </a>
                         </div>
                     </div>
@@ -79,17 +82,12 @@ function AuthCallback() {
     );
 }
 
-// Add Key icon to imports if not already imported (it's not, need to check imports)
-// Wait, I can't easily add imports here without multiple replace.
-// I'll stick to simple UI for now or check imports first.
-// App.tsx imports: Routes, Route, Navigate, useSearchParams, useNavigate (react-router-dom); useEffect, useState (react); useCurrentUser (./lib/api); FileBrowser
-// It does NOT import lucide-react icons. I'll use text or existing SVG.
-
 function LoginPage() {
+    const t = useT();
     const { mutate: loginByCode, isPending: isVerifying } = useLoginWithCode();
     const { mutate: generateCode, isPending: isGenerating } = useGenerateLoginCode();
     const { mutate: verifyCode } = useVerifyLoginCode();
-    
+
     const [code, setCode] = useState('');
     const [isPolling, setIsPolling] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -102,10 +100,10 @@ function LoginPage() {
                 setIsPolling(true);
             },
             onError: (err: any) => {
-                setError(err.response?.data?.detail || "Failed to generate code");
+                setError(err.response?.data?.detail || t('login.botHint', { cmd: '/login' }));
             }
         });
-    }, [generateCode]);
+    }, [generateCode, t]);
 
     // Polling logic
     useEffect(() => {
@@ -141,7 +139,7 @@ function LoginPage() {
                 window.location.href = '/';
             },
             onError: (err: any) => {
-                setError(err.response?.data?.detail || "Invalid code");
+                setError(err.response?.data?.detail || t('login.invalidCode'));
             }
         });
     };
@@ -160,10 +158,10 @@ function LoginPage() {
                 <img src={logo} alt="TelePlay" className="w-24 h-24 mx-auto mb-6 drop-shadow-2xl" />
 
                 <h1 className="text-3xl font-bold mb-2 text-gradient">
-                    TelePlay
+                    {t('app.title')}
                 </h1>
                 <p className="text-dark-400 mb-8">
-                    Stream your files from Telegram
+                    {t('app.tagline')}
                 </p>
 
                 <div className="space-y-6">
@@ -173,13 +171,13 @@ function LoginPage() {
                             <svg className="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                             </svg>
-                            Login with Code
+                            {t('login.codeTitle')}
                         </h3>
                         <form onSubmit={handleManualLogin} className="flex flex-col gap-3">
                             <div className="relative">
                                 <input
                                     type="text"
-                                    placeholder="ENTER 6-DIGIT CODE"
+                                    placeholder={t('login.codePlaceholder')}
                                     value={code}
                                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                                     maxLength={6}
@@ -199,9 +197,9 @@ function LoginPage() {
                                 {isVerifying ? (
                                     <span className="flex items-center justify-center gap-2">
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        Verifying...
+                                        {t('login.verifying')}
                                     </span>
-                                ) : 'Login'}
+                                ) : t('login.submit')}
                             </button>
                             {error && (
                                 <p className="text-red-400 text-sm mt-1">
@@ -209,17 +207,21 @@ function LoginPage() {
                                 </p>
                             )}
                         </form>
-                        
+
                         {isPolling && (
                             <div className="flex items-center justify-center gap-2 mt-4 text-xs text-dark-400">
                                 <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></div>
-                                Waiting for confirmation...
+                                {t('login.waitingConfirm')}
                             </div>
                         )}
-                        
-                        <p className="text-xs text-dark-500 mt-4">
-                            Send <span className="text-primary-400 font-mono bg-dark-800/50 px-1.5 py-0.5 rounded">/login {code || 'CODE'}</span> to the bot to get a code.
-                        </p>
+
+                        <p
+                            className="text-xs text-dark-500 mt-4"
+                            dangerouslySetInnerHTML={{
+                                __html: t('login.botHint', { cmd: `<span class="text-primary-400 font-mono bg-dark-800/50 px-1.5 py-0.5 rounded">/login ${code || 'CODE'}</span>` })
+                                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                            }}
+                        />
                     </div>
 
                     <div className="relative">
@@ -227,7 +229,7 @@ function LoginPage() {
                             <div className="w-full border-t border-white/[0.06]"></div>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-dark-900/80 px-3 text-dark-500">Or open bot directly</span>
+                            <span className="bg-dark-900/80 px-3 text-dark-500">{t('login.orOpenBot')}</span>
                         </div>
                     </div>
 
@@ -239,9 +241,10 @@ function LoginPage() {
 }
 
 function BotLink({ code }: { code?: string }) {
+    const t = useT();
     const { data: botInfo } = useBotInfo();
-    const botUrl = botInfo?.username 
-        ? `https://t.me/${botInfo.username}${code ? `?start=${code}` : ''}` 
+    const botUrl = botInfo?.username
+        ? `https://t.me/${botInfo.username}${code ? `?start=${code}` : ''}`
         : '#';
 
     return (
@@ -260,16 +263,11 @@ function BotLink({ code }: { code?: string }) {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const t = useT();
     const { data: user, isLoading, error } = useCurrentUser();
     const token = localStorage.getItem('access_token');
 
-    console.log('[ProtectedRoute] Token exists:', !!token);
-    console.log('[ProtectedRoute] isLoading:', isLoading);
-    console.log('[ProtectedRoute] error:', error);
-    console.log('[ProtectedRoute] user:', user);
-
     if (!token) {
-        console.log('[ProtectedRoute] No token, redirecting to login');
         return <Navigate to="/login" replace />;
     }
 
@@ -278,21 +276,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
             <div className="min-h-screen flex items-center justify-center bg-dark-950">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-                    <p className="text-dark-400">Checking authentication...</p>
+                    <p className="text-dark-400">{t('app.checkingAuth')}</p>
                 </div>
             </div>
         );
     }
 
     if (error) {
-        console.log('[ProtectedRoute] Auth error, showing error message');
-        // Show error instead of immediately redirecting
         return (
             <div className="min-h-screen flex items-center justify-center bg-dark-950 p-4">
                 <div className="text-center max-w-md">
-                    <p className="text-red-400 text-lg mb-4">Authentication Error</p>
+                    <p className="text-red-400 text-lg mb-4">{t('app.authError')}</p>
                     <p className="text-dark-400 text-sm mb-4">
-                        {error instanceof Error ? error.message : 'Failed to verify token'}
+                        {error instanceof Error ? error.message : t('app.authError')}
                     </p>
                     <button
                         onClick={() => {
@@ -301,7 +297,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
                         }}
                         className="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded text-white"
                     >
-                        Go to Login
+                        {t('app.goLogin')}
                     </button>
                 </div>
             </div>
@@ -310,8 +306,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     return <>{children}</>;
 }
-
-import MediaPlayer from './components/MediaPlayer';
 
 function App() {
     return (

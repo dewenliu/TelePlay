@@ -2,9 +2,11 @@
  * Main FileBrowser component - the core of the web interface
  */
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, Film, Music, Image as ImageIcon, FileText, Menu } from 'lucide-react';
+import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, Film, Music, Image as ImageIcon, FileText, Menu, Upload } from 'lucide-react';
 import { useFiles, useFolders, useUpdateFile, useUpdateFolder, useDeleteFolder, useDeleteFiles, useMoveFiles, TelegramFile, Folder, useRecentFiles, useContinueWatching, useDeleteFolders, useMoveFolders } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { useQueryClient } from '@tanstack/react-query';
+import { useT } from '../lib/i18n';
 import FileCard from './FileCard';
 import FolderCard from './FolderCard';
 import NewFolderModal from './NewFolderModal';
@@ -32,6 +34,8 @@ export default function FileBrowser() {
         setPreviewFile,
         showNewFolder,
         setShowNewFolder,
+        showUpload,
+        setShowUpload,
         moveItems,
         setMoveItems,
         deleteConfirm,
@@ -75,6 +79,27 @@ export default function FileBrowser() {
             setHasMore(filesList.page * filesList.per_page < filesList.total);
         }
     }, [filesList, activeSection]);
+
+    // Watch React Query cache directly: if any ['files', ...] query changes (e.g. after a
+    // mutation we just did cache surgery on), drop any files that no longer belong to the
+    // current view (wrong folder / wrong filter) from the cumulative list. This is what
+    // makes the "move file → it disappears without F5" fix actually work.
+    const filesQueries = useQueryClient().getQueryCache().findAll({ queryKey: ['files'] });
+    useEffect(() => {
+        if (activeSection !== 'files') return;
+        // Recompute the "valid" set of file ids from the current view's first page cache.
+        // If the first page has been refetched and the file is gone there, it's gone.
+        const live = filesQueries
+            .map((q) => q.state.data as FileListResponse | undefined)
+            .filter((d): d is FileListResponse => !!d && Array.isArray(d.files));
+        if (live.length === 0) return;
+        const liveIds = new Set<number>();
+        live.forEach((d) => d.files.forEach((f) => liveIds.add(f.id)));
+        setAllFiles((prev) => {
+            const next = prev.filter((f) => liveIds.has(f.id));
+            return next.length === prev.length ? prev : next;
+        });
+    }, [filesQueries, activeSection]);
 
     // Determine which files to show
     let displayFiles: TelegramFile[] | undefined;
@@ -147,7 +172,7 @@ export default function FileBrowser() {
     const navigateToFolder = useCallback((folder: Folder | null) => {
         if (folder === null) {
             setCurrentFolderId(null);
-            setBreadcrumbs([{ id: null, name: 'My Files' }]);
+            setBreadcrumbs([{ id: null, name: t('browser.myFiles') }]);
         } else {
             setCurrentFolderId(folder.id);
             setBreadcrumbs([...breadcrumbs, { id: folder.id, name: folder.name }]);
@@ -192,10 +217,10 @@ export default function FileBrowser() {
             }
             setDeleteConfirm(null);
             clearSelection();
-            addToast('Items deleted successfully', 'success');
+            addToast(t('toast.deletedOk'), 'success');
         } catch (error) {
             console.error('Delete failed:', error);
-            addToast('Failed to delete items', 'error');
+            addToast(t('toast.deleteFailed'), 'error');
         }
     };
 
@@ -221,12 +246,15 @@ export default function FileBrowser() {
                 }
                 setClipboard(null);
             } else if (clipboard.mode === 'copy') {
-                alert("Copying files is not yet supported. Only Move (Cut) is supported.");
+                // Copy is not yet implemented server-side (would need a Telegram-side duplicate
+                // via forwarded message). Replaced the old browser alert() with a toast so it
+                // doesn't block the UI thread.
+                addToast(t('modal.copyNotSupported'), 'info');
             }
         } catch (error) {
             console.error('Paste failed:', error);
         }
-    }, [clipboard, currentFolderId, moveFilesMutation, moveFoldersMutation, setClipboard]);
+    }, [clipboard, currentFolderId, moveFilesMutation, moveFoldersMutation, setClipboard, t, addToast]);
 
 
     // Selection Box Logic
@@ -347,6 +375,13 @@ export default function FileBrowser() {
                 return;
             }
 
+            // Ctrl+U - Upload
+            if (e.ctrlKey && !e.shiftKey && (e.key === 'u' || e.key === 'U')) {
+                e.preventDefault();
+                setShowUpload(true);
+                return;
+            }
+
             // F5 or Ctrl+R - Refresh
             if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
                 e.preventDefault();
@@ -358,6 +393,7 @@ export default function FileBrowser() {
             if (e.key === 'Escape') {
                 if (previewFile) setPreviewFile(null);
                 else if (showNewFolder) setShowNewFolder(false);
+                else if (showUpload) setShowUpload(false);
                 else if (moveItems) setMoveItems(null);
                 else if (deleteConfirm) setDeleteConfirm(null);
                 else clearSelection();
@@ -424,10 +460,10 @@ export default function FileBrowser() {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [
-        previewFile, showNewFolder, moveItems, deleteConfirm, 
+        previewFile, showNewFolder, showUpload, moveItems, deleteConfirm, 
         selectedFileIds, displayFiles, breadcrumbs, clipboard, 
         currentFolderId, handlePaste, handleRefresh,
-        setPreviewFile, setShowNewFolder, setMoveItems, setDeleteConfirm, 
+        setPreviewFile, setShowNewFolder, setShowUpload, setMoveItems, setDeleteConfirm, 
         clearSelection, selectAll, setRenameFile, navigateToBreadcrumb, setClipboard, folders
     ]);
 
@@ -485,7 +521,7 @@ export default function FileBrowser() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500" />
                             <input
                                 type="text"
-                                placeholder="Search..."
+                                placeholder={t('browser.search')}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full bg-dark-800/50 border border-white/[0.06] rounded-lg pl-9 pr-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 focus:bg-dark-800 transition-all"
@@ -521,7 +557,7 @@ export default function FileBrowser() {
                         <div className="hidden md:flex items-center bg-dark-800/50 rounded-lg p-0.5 border border-white/[0.06] mr-2">
                              <button
                                 onClick={() => setFileTypeFilter(null)}
-                                title="All Files"
+                                title={t('browser.filterAll')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     !fileTypeFilter ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
                                 }`}
@@ -530,7 +566,7 @@ export default function FileBrowser() {
                             </button>
                             <button
                                 onClick={() => setFileTypeFilter('video')}
-                                title="Videos"
+                                title={t('browser.filterVideo')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     fileTypeFilter === 'video' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
                                 }`}
@@ -539,7 +575,7 @@ export default function FileBrowser() {
                             </button>
                             <button
                                 onClick={() => setFileTypeFilter('audio')}
-                                title="Audio"
+                                title={t('browser.filterAudio')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     fileTypeFilter === 'audio' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
                                 }`}
@@ -548,7 +584,7 @@ export default function FileBrowser() {
                             </button>
                             <button
                                 onClick={() => setFileTypeFilter('image')}
-                                title="Images"
+                                title={t('browser.filterImage')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     fileTypeFilter === 'image' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
                                 }`}
@@ -557,7 +593,7 @@ export default function FileBrowser() {
                             </button>
                             <button
                                 onClick={() => setFileTypeFilter('document')}
-                                title="Documents"
+                                title={t('browser.filterDocument')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     fileTypeFilter === 'document' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
                                 }`}
@@ -571,7 +607,7 @@ export default function FileBrowser() {
                                  onClick={handleRefresh}
                                  disabled={isLoading}
                                  className={`p-1.5 rounded-md text-dark-400 hover:text-white hover:bg-white/[0.05] transition-all active:scale-95 ${isLoading ? 'animate-spin' : ''}`}
-                                 title="Refresh"
+                                 title={t('browser.refresh')}
                              >
                                  <RefreshCw className="w-4 h-4" />
                              </button>
@@ -597,18 +633,28 @@ export default function FileBrowser() {
                                 className="ml-2 btn-secondary py-1.5 px-3 text-xs flex items-center gap-2 bg-primary-500/10 text-primary-300 border-primary-500/20 hover:bg-primary-500/20"
                             >
                                 <Clipboard className="w-3.5 h-3.5" />
-                                Paste ({clipboard.files.length + clipboard.folders.length})
+                                {t('browser.pasteCount', { n: clipboard.files.length + clipboard.folders.length })}
                             </button>
                         )}
 
                         {activeSection === 'files' && (
-                            <button
-                                onClick={() => setShowNewFolder(true)}
-                                className="ml-2 btn-primary py-1.5 px-3 text-sm flex items-center gap-2 shadow-lg shadow-primary-500/20"
-                            >
-                                <FolderPlus className="w-4 h-4" />
-                                <span className="hidden sm:inline">New Folder</span>
-                            </button>
+                            <>
+                                <button
+                                    onClick={() => setShowUpload(true)}
+                                    className="ml-2 btn-secondary py-1.5 px-3 text-sm flex items-center gap-2"
+                                    title={t('browser.uploadHint')}
+                                >
+                                    <Upload className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{t('browser.upload')}</span>
+                                </button>
+                                <button
+                                    onClick={() => setShowNewFolder(true)}
+                                    className="btn-primary py-1.5 px-3 text-sm flex items-center gap-2 shadow-lg shadow-primary-500/20"
+                                >
+                                    <FolderPlus className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{t('browser.newFolder')}</span>
+                                </button>
+                            </>
                         )}
                     </div>
                 </header>
@@ -669,7 +715,7 @@ export default function FileBrowser() {
                                     <div className="w-24 h-24 rounded-3xl bg-dark-800/50 flex items-center justify-center border border-white/[0.04] mb-6 shadow-2xl">
                                         <ArrowUp className="w-10 h-10 text-dark-600 animate-bounce" />
                                     </div>
-                                    <h3 className="text-xl font-bold text-white mb-2">No files found</h3>
+                                    <h3 className="text-xl font-bold text-white mb-2">{t('browser.noFiles')}</h3>
                                     <p className="text-dark-400 max-w-xs">
                                         Upload files by sending them to the Telegram bot
                                     </p>
@@ -714,6 +760,13 @@ export default function FileBrowser() {
                 <NewFolderModal
                     parentId={currentFolderId}
                     onClose={() => setShowNewFolder(false)}
+                />
+            )}
+
+            {showUpload && (
+                <UploadModal
+                    currentFolderId={currentFolderId}
+                    onClose={() => setShowUpload(false)}
                 />
             )}
 

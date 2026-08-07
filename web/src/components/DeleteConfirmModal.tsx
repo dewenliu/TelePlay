@@ -2,6 +2,7 @@
  * DeleteConfirmModal - confirmation dialog for deleting files/folders
  */
 import { X, Trash2 } from 'lucide-react';
+import { useT } from '../lib/i18n';
 
 interface DeleteConfirmModalProps {
     type: 'file' | 'folder' | 'multiple';
@@ -12,10 +13,11 @@ interface DeleteConfirmModalProps {
 }
 
 export default function DeleteConfirmModal({ type, name, count = 1, onConfirm, onClose }: DeleteConfirmModalProps) {
-    const title = count > 1 ? `Delete ${count} items` : `Delete ${type}`;
-    const message = count > 1 
-        ? `Are you sure you want to delete these ${count} items?`
-        : <>Are you sure you want to delete <span className="text-white font-medium">"{name}"</span>?</>;
+    const t = useT();
+    const title = count > 1 ? t('ctx.deleteCount', { n: count }) : t('ctx.delete');
+    const message = count > 1
+        ? t('modal.deleteConfirmBody')
+        : <>{t('modal.deleteConfirmBody')} <span className="text-white font-medium">"{name}"</span>?</>;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -25,7 +27,7 @@ export default function DeleteConfirmModal({ type, name, count = 1, onConfirm, o
                         <Trash2 className="w-5 h-5" />
                         {title}
                     </h2>
-                    <button onClick={onClose} className="p-1 hover:bg-dark-700 rounded">
+                    <button onClick={onClose} className="p-1 hover:bg-dark-700 rounded" title={t('modal.close')}>
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -34,11 +36,11 @@ export default function DeleteConfirmModal({ type, name, count = 1, onConfirm, o
                     <p>{message}</p>
                     {type === 'folder' && (
                         <p className="mt-2 text-sm text-dark-400">
-                            Files in this folder will be moved to root.
+                            {t('modal.deleteConfirmBody')}
                         </p>
                     )}
                     <p className="mt-2 text-sm text-red-400">
-                        This action cannot be undone.
+                        {t('modal.deleteConfirmBody')}
                     </p>
                 </div>
 
@@ -47,13 +49,13 @@ export default function DeleteConfirmModal({ type, name, count = 1, onConfirm, o
                         onClick={onClose}
                         className="px-4 py-2 text-dark-400 hover:text-white transition-colors"
                     >
-                        Cancel
+                        {t('modal.cancel')}
                     </button>
                     <button
                         onClick={onConfirm}
                         className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
                     >
-                        Delete
+                        {t('ctx.delete')}
                     </button>
                 </div>
             </div>
