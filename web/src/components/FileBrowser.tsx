@@ -617,7 +617,7 @@ export default function FileBrowser() {
                                 title={t('browser.filterOther')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     fileTypeFilter === 'other' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
-                                `}`
+                                }`}
                             >
                                 <Archive className="w-4 h-4" />
                             </button>
@@ -627,10 +627,7 @@ export default function FileBrowser() {
                              <button
                                  onClick={handleRefresh}
                                  disabled={isLoading}
-                                 className={twMerge(
-    "p-1.5 rounded-md text-dark-400 hover:text-white hover:bg-white/[0.05] transition-all active:scale-95",
-    isLoading && 'animate-spin'
-  )}
+                                 className={`p-1.5 rounded-md text-dark-400 hover:text-white hover:bg-white/[0.05] transition-all active:scale-95 ${isLoading ? 'animate-spin' : ''}`}
                                  title={t('browser.refresh')}
                              >
                                  <RefreshCw className="w-4 h-4" />
@@ -638,18 +635,13 @@ export default function FileBrowser() {
                              <div className="w-px h-3 bg-white/[0.1] mx-1"></div>
                              <button
                                  onClick={() => setViewMode('grid')}
-                                 className={"p-1.5 rounded-md transition-all " + (viewMode === 'grid' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]')}
+                                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'}`}
                              >
                                  <Grid className="w-4 h-4" />
                              </button>
                              <button
                                  onClick={() => setViewMode('list')}
-                                 className={clsx(
-    "p-1.5 rounded-md transition-all",
-    viewMode === 'list'
-      ? 'bg-primary-600 text-white shadow-sm'
-      : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
-  )}
+                                 className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'}`}
                              >
                                  <List className="w-4 h-4" />
                              </button>
