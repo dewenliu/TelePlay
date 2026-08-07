@@ -125,11 +125,27 @@ async def get_thumbnail(
         select(File).where(File.id == file_id, File.user_id == current_user.id)
     )
     file = result.scalar_one_or_none()
-    
-    if not file or not file.thumbnail_file_id:
+
+    if not file:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # 对于图片类型，缩略图就是图片本身；即使 thumbnail_file_id 为空也用 file_id 兜底。
+    # 其他类型必须有 thumbnail_file_id，否则返回 404。
+    thumb_file_id = file.thumbnail_file_id
+    if not thumb_file_id and file.file_type == "image":
+        thumb_file_id = file.file_id
+
+    if not thumb_file_id:
         raise HTTPException(status_code=404, detail="Thumbnail not found")
-    
+
     try:
+        # 图片类型直接用 file_id 下载；其他类型仍从消息中提取 thumb 对象。
+        if file.file_type == "image":
+            thumb_bytes = await telegram.tg_client.download_media(thumb_file_id, in_memory=True)
+            if thumb_bytes:
+                return Response(content=thumb_bytes.getvalue(), media_type="image/jpeg")
+            raise HTTPException(status_code=404, detail="Thumbnail not found in message")
+
         # Get the message and download thumbnail
         message = await get_message_from_channel(file.channel_message_id)
         if not message:
@@ -145,20 +161,20 @@ async def get_thumbnail(
             thumbnail = message.audio.thumbs[0]
         elif message.photo:
             thumbnail = message.photo[-1]  # Use best quality photo
-            
+
         if not thumbnail:
             # Try using the file_id directly if stored (fallback)
-            if file.thumbnail_file_id:
+            if thumb_file_id:
                 try:
-                    thumb_bytes = await telegram.tg_client.download_media(file.thumbnail_file_id, in_memory=True)
+                    thumb_bytes = await telegram.tg_client.download_media(thumb_file_id, in_memory=True)
                     return Response(content=thumb_bytes.getvalue(), media_type="image/jpeg")
                 except Exception:
                     pass
             raise HTTPException(status_code=404, detail="Thumbnail not found in message")
-        
+
         # Download thumbnail to memory
         thumb_bytes = await telegram.tg_client.download_media(thumbnail.file_id, in_memory=True)
-        
+
         return Response(
             content=thumb_bytes.getvalue(),
             media_type="image/jpeg"

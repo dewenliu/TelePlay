@@ -75,7 +75,7 @@ export default function FileBrowser() {
     const { data: cwFiles, isLoading: cwLoading, refetch: refetchCW } = useContinueWatching(50);
     
 
-    // For files section, accumulate files from all pages
+    // For files section, accumulate files from all pages (分页加载累积，仅 page 变化时追加)
     useEffect(() => {
         if (filesList && activeSection === 'files') {
             setAllFiles(prev => {
@@ -357,15 +357,10 @@ export default function FileBrowser() {
 
     // Handle File Open / Play
     const handleFileOpen = (file: TelegramFile) => {
-        if (file.file_type === 'video' || file.file_type === 'audio') {
+        if (file.file_type === 'video' || file.file_type === 'audio' || file.file_type === 'image') {
             setPreviewFile(file);
         } else {
-            // For now, do nothing or show a toast
-            // Maybe implement lightbox for images later
-            if (file.file_type === 'image') {
-                 // Future: Lightbox
-            }
-            // Prevent opening empty player
+            // 其他类型（document 等）暂不支持预览，避免打开空播放器
         }
     };
 
@@ -505,6 +500,16 @@ export default function FileBrowser() {
         setAllFiles([]);
         setHasMore(true);
     }, [currentFolderId, fileTypeFilter, searchQuery, activeSection]);
+
+    // 当过滤条件变化后，filesList 会重新拉取。此时直接用最新结果替换 allFiles，
+    // 避免上方"分页累积"useEffect 在过滤切换时仍走 append 分支，导致列表空或残留旧类型文件。
+    useEffect(() => {
+        if (filesList && activeSection === 'files') {
+            setAllFiles(filesList.files);
+            setHasMore(filesList.page * filesList.per_page < filesList.total);
+        }
+    }, [fileTypeFilter, searchQuery, currentFolderId]);
+
 
     return (
         <div className="flex h-screen bg-dark-950 text-white selection:bg-primary-500/30 overflow-hidden">

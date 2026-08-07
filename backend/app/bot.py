@@ -530,6 +530,9 @@ async def handle_file(client, message: Message):
             return
         media = sizes[-1]
         file_type = "image"
+        # PhotoSize 对象没有 thumbs 属性；对图片而言，缩略图就是图片本身，
+        # 直接复用最大尺寸的 file_id 作为 thumbnail_file_id，否则后续缩略图端点会 404。
+        _photo_thumb_file_id = media.file_id
     else:
         return
 
@@ -541,16 +544,24 @@ async def handle_file(client, message: Message):
         
         # Extract file info
         raw_filename = getattr(media, "file_name", None) or f"{file_type}_{message.id}"
+        # 对于图片，PhotoSize 没有 thumbs/file_name/mime_type/duration 等属性，
+        # 用 file_id 本身作为缩略图；其他类型从 media.thumbs 取。
+        if file_type == "image":
+            thumb_file_id = _photo_thumb_file_id
+            photo_mime = "image/jpeg"
+        else:
+            thumb_file_id = media.thumbs[0].file_id if getattr(media, "thumbs", None) else None
+            photo_mime = getattr(media, "mime_type", None)
         file_info = {
             "file_id": media.file_id,
             "file_unique_id": media.file_unique_id,
             "file_name": sanitize_filename(raw_filename),
             "file_size": media.file_size,
-            "mime_type": getattr(media, "mime_type", None),
+            "mime_type": photo_mime,
             "duration": getattr(media, "duration", None),
             "width": getattr(media, "width", None),
             "height": getattr(media, "height", None),
-            "thumbnail_file_id": media.thumbs[0].file_id if getattr(media, "thumbs", None) else None,
+            "thumbnail_file_id": thumb_file_id,
         }
         
         # Save to database

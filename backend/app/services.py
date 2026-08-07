@@ -41,6 +41,9 @@ def sanitize_filename(name: str) -> str:
 
 def add_urls_to_file(file: File) -> dict:
     """Add stream and thumbnail URLs to file response."""
+    # 图片类型的缩略图就是图片本身：即使 thumbnail_file_id 为空，
+    # 也返回 thumbnail_url（端点会对图片类型用 file_id 兜底）。
+    has_thumbnail = bool(file.thumbnail_file_id) or file.file_type == "image"
     data = {
         "id": file.id,
         "user_id": file.user_id,
@@ -57,7 +60,7 @@ def add_urls_to_file(file: File) -> dict:
         "created_at": file.created_at,
         "updated_at": file.updated_at,
         "stream_url": f"/api/stream/{file.id}",
-        "thumbnail_url": f"/api/stream/{file.id}/thumbnail" if file.thumbnail_file_id else None,
+        "thumbnail_url": f"/api/stream/{file.id}/thumbnail" if has_thumbnail else None,
         "last_pos": file.watch_progress[0].position if file.watch_progress else 0,
     }
     
