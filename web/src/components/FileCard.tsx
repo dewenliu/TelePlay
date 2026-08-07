@@ -1,9 +1,10 @@
 /**
  * FileCard component - displays a single file in grid or list view
  */
-import { Play, MoreVertical, Film, Music, FileText, Image } from 'lucide-react';
+import { Play, MoreVertical, Film, Music, FileText, Image, Archive } from 'lucide-react';
 import { TelegramFile, formatFileSize, formatDuration } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { useT } from '../lib/i18n';
 
 interface FileCardProps {
     file: TelegramFile;
@@ -24,6 +25,7 @@ export default function FileCard({
     onPlay
 }: FileCardProps) {
     const { activeContextMenu, setActiveContextMenu } = useAppStore();
+    const t = useT();
 
     // Check if this file's context menu is active
     const showMenu = activeContextMenu?.type === 'file' && activeContextMenu?.item.id === file.id;
@@ -64,6 +66,7 @@ export default function FileCard({
             case 'video': return <Film className="w-8 h-8 text-primary-400" />;
             case 'audio': return <Music className="w-8 h-8 text-pink-400" />;
             case 'image': return <Image className="w-8 h-8 text-emerald-400" />;
+            case 'other': return <Archive className="w-8 h-8 text-amber-400" />;
             default: return <FileText className="w-8 h-8 text-blue-400" />;
         }
     };
@@ -73,6 +76,7 @@ export default function FileCard({
             case 'video': return <Film className="w-3 h-3 text-primary-400" />;
             case 'audio': return <Music className="w-3 h-3 text-pink-400" />;
             case 'image': return <Image className="w-3 h-3 text-emerald-400" />;
+            case 'other': return <Archive className="w-3 h-3 text-amber-400" />;
             default: return <FileText className="w-3 h-3 text-blue-400" />;
         }
     };
@@ -114,7 +118,7 @@ export default function FileCard({
                     <div className="flex items-center gap-3 text-xs text-dark-400 mt-1">
                         <span className="flex items-center gap-1">
                             {getSmallIcon()}
-                            <span className="capitalize">{file.file_type}</span>
+                            <span className="capitalize">{t(`common.${file.file_type}`)}</span>
                         </span>
                         <span className="w-1 h-1 rounded-full bg-dark-600"></span>
                         <span>{formatFileSize(file.file_size)}</span>
@@ -222,7 +226,7 @@ export default function FileCard({
                             : 'bg-dark-800 border-white/[0.05] text-dark-400 group-hover:border-white/[0.1]'
                         }`}>
                             {getSmallIcon()}
-                            <span className="capitalize">{file.file_type}</span>
+                            <span className="capitalize">{t(`common.${file.file_type}`)}</span>
                         </span>
                         <p className="text-[10px] text-dark-500">
                             {formatFileSize(file.file_size)}

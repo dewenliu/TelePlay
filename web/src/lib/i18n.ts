@@ -59,6 +59,7 @@ const zh: Dict = {
   'browser.filterAudio': '音频',
   'browser.filterImage': '图片',
   'browser.filterDocument': '文档',
+  'browser.filterOther': '其它',
   'browser.newFolder': '新建文件夹',
   'browser.upload': '上传文件',
   'browser.uploadHint': '请把文件发送给 Telegram Bot，由 Bot 上传到此处',
@@ -141,6 +142,14 @@ const zh: Dict = {
   'sidebar.continueWatching': '继续观看',
   'sidebar.storage': '存储',
   'sidebar.language': '语言',
+  'sidebar.unlimitedStorage': '无限存储 🚀',
+  'sidebar.logout': '退出登录',
+  'sidebar.logoutAll': '退出所有设备',
+  'sidebar.confirmLogout': '确认退出登录',
+  'sidebar.logoutConfirmBody': '确定要结束当前会话吗？',
+  'sidebar.logoutEverywhere': '在所有设备退出',
+  'sidebar.logoutAllConfirmBody': '这将结束你在**所有设备**上的会话，确定吗？',
+  'sidebar.logoutAllPending': '…',
 
   // Rename modal prompt
   'prompt.renameFile': '重命名文件',
@@ -149,13 +158,17 @@ const zh: Dict = {
   // Common
   'common.file': '文件',
   'common.files': '个文件',
+  'common.fileCount': '{n} 个文件',
+  'common.fileCountSingular': '1 个文件',
   'common.video': '视频',
   'common.audio': '音频',
   'common.image': '图片',
   'common.document': '文档',
+  'common.other': '其它',
   'common.unknown': '未知',
   'common.copied': '已复制',
   'common.copy': '复制',
+  'common.resumedFrom': '从 {pos} 续播',
 };
 
 const en: Dict = {
@@ -197,6 +210,7 @@ const en: Dict = {
   'browser.filterAudio': 'Audio',
   'browser.filterImage': 'Images',
   'browser.filterDocument': 'Documents',
+  'browser.filterOther': 'Other',
   'browser.newFolder': 'New Folder',
   'browser.upload': 'Upload',
   'browser.uploadHint': 'Send files to the Telegram bot to upload',
@@ -279,6 +293,14 @@ const en: Dict = {
   'sidebar.continueWatching': 'Continue Watching',
   'sidebar.storage': 'Storage',
   'sidebar.language': 'Language',
+  'sidebar.unlimitedStorage': 'Unlimited Storage 🚀',
+  'sidebar.logout': 'Logout',
+  'sidebar.logoutAll': 'Logout All',
+  'sidebar.confirmLogout': 'Confirm Logout',
+  'sidebar.logoutConfirmBody': 'Are you sure you want to end your session?',
+  'sidebar.logoutEverywhere': 'Logout Everywhere',
+  'sidebar.logoutAllConfirmBody': 'This will end your session on **all devices**. Are you sure?',
+  'sidebar.logoutAllPending': '…',
 
   // Rename modal prompt
   'prompt.renameFile': 'Rename file',
@@ -287,13 +309,17 @@ const en: Dict = {
   // Common
   'common.file': 'file',
   'common.files': 'files',
+  'common.fileCount': '{n} files',
+  'common.fileCountSingular': '1 file',
   'common.video': 'Video',
   'common.audio': 'Audio',
   'common.image': 'Image',
   'common.document': 'Document',
+  'common.other': 'Other',
   'common.unknown': 'Unknown',
   'common.copied': 'Copied',
   'common.copy': 'Copy',
+  'common.resumedFrom': 'Resumed from {pos}',
 };
 
 const DICTS: Record<Lang, Dict> = { zh, en };

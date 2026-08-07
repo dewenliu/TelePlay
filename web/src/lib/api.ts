@@ -35,7 +35,7 @@ export interface TelegramFile {
     file_name: string;
     file_size: number;
     mime_type: string | null;
-    file_type: 'video' | 'audio' | 'document' | 'image';
+    file_type: 'video' | 'audio' | 'document' | 'image' | 'other';
     duration: number | null;
     width: number | null;
     height: number | null;
@@ -576,6 +576,7 @@ export const getFileIcon = (fileType: string): string => {
         case 'audio': return '🎵';
         case 'image': return '🖼️';
         case 'document': return '📄';
+        case 'other': return '📦';
         default: return '📎';
     }
 };

@@ -5,6 +5,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Download, ExternalLink, AlertTriangle, Copy, PictureInPicture2, Gauge, ChevronDown, ChevronUp } from 'lucide-react';
 import { TelegramFile, formatDuration, useUpdateProgress, useFile, api } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { useT } from '../lib/i18n';
 import ImagePreview from './ImagePreview';
 
 export default function MediaPlayer() {
@@ -29,6 +30,7 @@ interface MediaPlayerContentProps {
 }
 
 function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaPlayerContentProps) {
+    const t = useT();
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -491,7 +493,7 @@ function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaP
                         <div>
                             <h3 className="text-lg font-medium truncate max-w-lg text-white">{file.file_name}</h3>
                             {((extendedFile?.last_pos || 0) > 0) && currentTime < 5 && (
-                                <p className="text-xs text-primary-400">Resumed from {formatDuration(extendedFile?.last_pos || 0)}</p>
+                                <p className="text-xs text-primary-400">{t('common.resumedFrom', { pos: formatDuration(extendedFile?.last_pos || 0) })}</p>
                             )}
                         </div>
                         <div className="flex items-center gap-2">

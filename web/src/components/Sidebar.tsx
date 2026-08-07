@@ -133,7 +133,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 {formatFileSize(storage.total_size)}
                             </div>
                             <div className="text-xs text-primary-400">
-                                Unlimited Storage 🚀
+                                {t('sidebar.unlimitedStorage')}
                             </div>
                         </>
                     ) : (
@@ -148,14 +148,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-dark-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                     >
                         <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Logout</span>
+                        <span className="font-medium">{t('sidebar.logout')}</span>
                     </button>
                     <button
                         onClick={() => setShowLogoutAllConfirm(true)}
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-dark-400 hover:text-orange-400 hover:bg-orange-500/10 transition-colors mt-1"
                     >
                         <Users className="w-5 h-5" />
-                        <span className="font-medium">Logout All</span>
+                        <span className="font-medium">{t('sidebar.logoutAll')}</span>
                     </button>
                 </div>
             </aside>
@@ -168,9 +168,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <LogOut className="w-6 h-6 text-red-500" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Confirm Logout</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2">{t('sidebar.confirmLogout')}</h3>
                             <p className="text-dark-400 text-sm">
-                                Are you sure you want to end your session?
+                                {t('sidebar.logoutConfirmBody')}
                             </p>
                         </div>
                         <div className="p-4 border-t border-white/5 flex gap-3 bg-dark-800/50">
@@ -184,7 +184,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 onClick={handleLogout}
                                 className="flex-1 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors shadow-lg shadow-red-500/20"
                             >
-                                Logout
+                                {t('sidebar.logout')}
                             </button>
                         </div>
                     </div>
@@ -199,9 +199,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Users className="w-6 h-6 text-orange-500" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Logout Everywhere</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2">{t('sidebar.logoutEverywhere')}</h3>
                             <p className="text-dark-400 text-sm">
-                                This will end your session on <strong>all devices</strong>. Are you sure?
+                                {t('sidebar.logoutAllConfirmBody')}
                             </p>
                         </div>
                         <div className="p-4 border-t border-white/5 flex gap-3 bg-dark-800/50">
@@ -216,7 +216,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 className="flex-1 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
                                 disabled={logoutAllMutation.isPending}
                             >
-                                {logoutAllMutation.isPending ? '...' : 'Logout All'}
+                                {logoutAllMutation.isPending ? t('sidebar.logoutAllPending') : t('sidebar.logoutAll')}
                             </button>
                         </div>
                     </div>

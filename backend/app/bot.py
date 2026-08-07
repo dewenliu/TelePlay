@@ -518,7 +518,46 @@ async def handle_file(client, message: Message):
         file_type = "audio"
     elif message.document:
         media = message.document
-        file_type = "document"
+        # document 是 Telegram 的兜底类型，覆盖范围极广（压缩包/可执行文件/电子书/
+        # 代码/字体/安装包等都是 document）。用白名单细分：只有真正的"文档"才归为
+        # "document"，其余全部归为 "other"，这样前端"文档"按钮只展示真正的文档，
+        # "其它"按钮收纳压缩包等所有杂项，严格符合"排除视频/音频/图片/文档之外"的定义。
+        doc_mime = (getattr(media, "mime_type", None) or "").lower()
+        doc_name = (getattr(media, "file_name", None) or "").lower()
+        # 真正的文档扩展名白名单
+        doc_exts = (
+            ".pdf", ".doc", ".docx", ".txt", ".rtf", ".odt", ".fodt",
+            ".xls", ".xlsx", ".ods", ".fods", ".csv",
+            ".ppt", ".pptx", ".odp", ".fdp",
+            ".md", ".markdown", ".rst",
+            ".pages", ".key", ".numbers",
+            ".wps", ".et", ".dps",
+        )
+        # 真正的文档 MIME 前缀/具体值
+        is_doc_mime = (
+            doc_mime == "application/pdf"
+            or doc_mime.startswith("application/msword")
+            or doc_mime.startswith("application/vnd.openxmlformats-officedocument.wordprocessing")
+            or doc_mime.startswith("application/vnd.openxmlformats-officedocument.spreadsheet")
+            or doc_mime.startswith("application/vnd.openxmlformats-officedocument.presentation")
+            or doc_mime.startswith("application/vnd.oasis.opendocument")
+            or doc_mime.startswith("application/vnd.ms-excel")
+            or doc_mime.startswith("application/vnd.ms-powerpoint")
+            or doc_mime.startswith("application/vnd.apple.pages")
+            or doc_mime.startswith("application/vnd.apple.keynote")
+            or doc_mime.startswith("application/vnd.apple.numbers")
+            or doc_mime.startswith("text/plain")
+            or doc_mime.startswith("text/markdown")
+            or doc_mime.startswith("text/csv")
+            or doc_mime.startswith("text/richtext")
+            or doc_mime.startswith("application/rtf")
+            or doc_mime.startswith("application/x-abiword")
+        )
+        is_doc_ext = any(doc_name.endswith(ext) for ext in doc_exts)
+        if is_doc_mime or is_doc_ext:
+            file_type = "document"
+        else:
+            file_type = "other"
     elif message.photo:
         # Photos were previously rejected here ("not supported yet") but the README and
         # file_type enum both already support 'image', and the File model + frontend filter

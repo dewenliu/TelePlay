@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Folder as FolderIcon, MoreVertical, ChevronRight } from 'lucide-react';
 import { Folder } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { useT } from '../lib/i18n';
 
 interface FolderCardProps {
     folder: Folder;
@@ -16,6 +17,7 @@ interface FolderCardProps {
 }
 
 export default function FolderCard({ folder, viewMode, selected, onSelect, onOpen, onFileDrop }: FolderCardProps) {
+    const t = useT();
     const [isDragOver, setIsDragOver] = useState(false);
     const { activeContextMenu, setActiveContextMenu } = useAppStore();
 
@@ -113,7 +115,7 @@ export default function FolderCard({ folder, viewMode, selected, onSelect, onOpe
                 <div className="flex-1 min-w-0">
                     <p className={`font-medium truncate text-sm transition-colors ${selected ? 'text-primary-300' : 'text-white group-hover:text-primary-300'}`}>{folder.name}</p>
                     <p className="text-xs text-dark-400 mt-0.5">
-                        {folder.file_count} {folder.file_count === 1 ? 'file' : 'files'}
+                        {folder.file_count === 1 ? t('common.fileCountSingular') : t('common.fileCount', { n: folder.file_count })}
                     </p>
                 </div>
 
@@ -192,7 +194,7 @@ export default function FolderCard({ folder, viewMode, selected, onSelect, onOpe
                 {folder.name}
             </p>
             <p className="text-xs text-dark-500 mt-1">
-                {folder.file_count} {folder.file_count === 1 ? 'file' : 'files'}
+                {folder.file_count === 1 ? t('common.fileCountSingular') : t('common.fileCount', { n: folder.file_count })}
             </p>
         </div>
     );

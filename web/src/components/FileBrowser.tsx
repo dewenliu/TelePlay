@@ -2,7 +2,7 @@
  * Main FileBrowser component - the core of the web interface
  */
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, Film, Music, Image as ImageIcon, FileText, Menu, Upload } from 'lucide-react';
+import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, Film, Music, Image as ImageIcon, FileText, Menu, Upload, Archive } from 'lucide-react';
 import { useFiles, useFolders, useUpdateFile, useUpdateFolder, useDeleteFolder, useDeleteFiles, useMoveFiles, TelegramFile, Folder, useRecentFiles, useContinueWatching, useDeleteFolders, useMoveFolders } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { useQueryClient } from '@tanstack/react-query';
@@ -612,6 +612,15 @@ export default function FileBrowser() {
                             >
                                 <FileText className="w-4 h-4" />
                             </button>
+                            <button
+                                onClick={() => setFileTypeFilter('other')}
+                                title={t('browser.filterOther')}
+                                className={`p-1.5 rounded-md transition-all ${
+                                    fileTypeFilter === 'other' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
+                                `}
+                            >
+                                <Archive className="w-4 h-4" />
+                            </button>
                         </div>
  
                          <div className="flex items-center gap-1 bg-dark-800/50 rounded-lg p-0.5 border border-white/[0.06]">
@@ -753,7 +762,7 @@ export default function FileBrowser() {
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">{t('browser.noFiles')}</h3>
                                     <p className="text-dark-400 max-w-xs">
-                                        Upload files by sending them to the Telegram bot
+                                        {t('browser.noFilesHint')}
                                     </p>
                                 </div>
                             )}
@@ -783,7 +792,7 @@ export default function FileBrowser() {
                     {/* No more files message */}
                     {activeSection === 'files' && !hasMore && allFiles.length > 0 && (
                         <div className="text-center py-4 text-dark-400">
-                            No more files
+                            {t('browser.noMore')}
                         </div>
                     )}
                 </div>
