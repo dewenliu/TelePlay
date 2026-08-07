@@ -617,7 +617,7 @@ export default function FileBrowser() {
                                 title={t('browser.filterOther')}
                                 className={`p-1.5 rounded-md transition-all ${
                                     fileTypeFilter === 'other' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
-                                `}
+                                `}`
                             >
                                 <Archive className="w-4 h-4" />
                             </button>
