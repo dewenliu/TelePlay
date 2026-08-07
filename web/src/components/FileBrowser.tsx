@@ -15,7 +15,6 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import RenameModal from './RenameModal';
 import Sidebar from './Sidebar';
 import Toasts from './Toasts';
-import ImagePreview from './ImagePreview';
 
 export default function FileBrowser() {
     const {
@@ -360,12 +359,14 @@ export default function FileBrowser() {
     const handleFileOpen = (file: TelegramFile) => {
         if (file.file_type === 'video' || file.file_type === 'audio') {
             setPreviewFile(file);
-        } else if (file.file_type === 'image') {
-            // Same modal-state slot (previewFile) as video/audio. ImagePreview
-            // is rendered conditionally below alongside the video player.
-            setPreviewFile(file);
+        } else {
+            // For now, do nothing or show a toast
+            // Maybe implement lightbox for images later
+            if (file.file_type === 'image') {
+                 // Future: Lightbox
+            }
+            // Prevent opening empty player
         }
-        // Documents and other types: no preview for now.
     };
 
     // Keyboard shortcuts
@@ -498,48 +499,11 @@ export default function FileBrowser() {
         }
     }, [isLoading, hasMore, activeSection]);
 
-    // Reset pagination when filters change. Critical: must clear cached pages
-    // and the accumulated list *in the same effect* as setting page=1, otherwise
-    // the previous filter's page-N request can race the new filter's page-1
-    // request and land second — leaving a window where `allFiles` contains
-    // files of a different type than what's on screen. The result is the
-    // "filter shows empty even though matching files exist" symptom.
+    // Reset pagination when filters change
     useEffect(() => {
         setPage(1);
         setAllFiles([]);
         setHasMore(true);
-    }, [currentFolderId, fileTypeFilter, searchQuery, activeSection]);
-
-    // When the filter/folder/search changes we also have to drop stale React
-    // Query caches from the previous filter. Otherwise the next render still
-    // sees `filesList` populated with the OLD filter's data (because the
-    // queryKey is different from the current filter, but the effect that
-    // *resets* page=1 hasn't run yet by the time the new request is built).
-    useEffect(() => {
-        // Active section guard: don't purge caches for sections we don't own.
-        if (activeSection !== 'files') return;
-        const qc = useQueryClient();
-        // Keep only ['files', ...] queries that match the current filter tuple.
-        // For any cache that doesn't, mark it stale and clear the data so it
-        // refetches on next mount instead of returning the previous filter's
-        // first page.
-        const queries = qc.getQueryCache().findAll({ queryKey: ['files'] });
-        queries.forEach((q) => {
-            // Skip the special 'recent' and 'continue-watching' queries — they
-            // are managed by separate hooks and have no filter tuple.
-            const key = q.queryKey as readonly unknown[];
-            if (key[1] === 'recent' || key[1] === 'continue-watching') return;
-            const [, kFolder, kType, kSearch, kPage] = key;
-            const match =
-                kFolder === currentFolderId &&
-                kType === (fileTypeFilter ?? undefined) &&
-                kSearch === (searchQuery ?? undefined) &&
-                kPage === 1;
-            if (!match) {
-                // Stale data from a previous filter — don't show it.
-                qc.removeQueries({ queryKey: q.queryKey });
-            }
-        });
     }, [currentFolderId, fileTypeFilter, searchQuery, activeSection]);
 
     return (
@@ -821,14 +785,6 @@ export default function FileBrowser() {
             </main>
             
             <Toasts />
-
-            {/* Image-only fullscreen preview. MediaPlayer is mounted at the
-                App level (see App.tsx) and shares the same `previewFile` state
-                via Zustand; it only handles video/audio. Images need their own
-                lightbox rendered here, gated on file_type === 'image'. */}
-            {previewFile && previewFile.file_type === 'image' && (
-                <ImagePreview file={previewFile} onClose={() => setPreviewFile(null)} />
-            )}
 
             {/* Modals */}
             {showNewFolder && (
