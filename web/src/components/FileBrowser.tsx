@@ -644,7 +644,12 @@ export default function FileBrowser() {
                              </button>
                              <button
                                  onClick={() => setViewMode('list')}
-                                 className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-primary-600 text-white shadow-sm' : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'}`}
+                                 className={clsx(
+    "p-1.5 rounded-md transition-all",
+    viewMode === 'list'
+      ? 'bg-primary-600 text-white shadow-sm'
+      : 'text-dark-400 hover:text-white hover:bg-white/[0.05]'
+  )}
                              >
                                  <List className="w-4 h-4" />
                              </button>
