@@ -16,6 +16,11 @@ interface AppState {
     // Selection
     selectedFileIds: Set<number>;
     selectedFolderIds: Set<number>;
+    // Anchor for shift-range select (Windows-style). Updated when user single-clicks (replace)
+    // or ctrl-clicks (add); never updated by range-select itself. Null on first selection or
+    // after switching folders/sections.
+    lastSelectedFileId: number | null;
+    setLastSelectedFileId: (id: number | null) => void;
     selectFile: (id: number, multi?: boolean) => void;
     deselectFile: (id: number) => void;
     selectFolder: (id: number, multi?: boolean) => void;
@@ -103,14 +108,20 @@ export const useAppStore = create<AppState>((set) => ({
     // Selection
     selectedFileIds: new Set(),
     selectedFolderIds: new Set(),
+    lastSelectedFileId: null,
+    setLastSelectedFileId: (id) => set({ lastSelectedFileId: id }),
     selectFile: (id, multi = false) => set((state) => {
         if (multi) {
             const newSet = new Set(state.selectedFileIds);
             if (newSet.has(id)) newSet.delete(id);
             else newSet.add(id);
-            return { selectedFileIds: newSet };
+            return { selectedFileIds: newSet, lastSelectedFileId: id };
         }
-        return { selectedFileIds: new Set([id]), selectedFolderIds: new Set() };
+        return {
+            selectedFileIds: new Set([id]),
+            selectedFolderIds: new Set(),
+            lastSelectedFileId: id,
+        };
     }),
     deselectFile: (id) => set((state) => {
         const newSet = new Set(state.selectedFileIds);
@@ -131,10 +142,35 @@ export const useAppStore = create<AppState>((set) => ({
         newSet.delete(id);
         return { selectedFolderIds: newSet };
     }),
-    clearSelection: () => set({ selectedFileIds: new Set(), selectedFolderIds: new Set() }),
-    selectAll: (fileIds, folderIds = []) => set({ 
+    clearSelection: () => set({ selectedFileIds: new Set(), selectedFolderIds: new Set(), lastSelectedFileId: null }),
+    selectAll: (fileIds, folderIds = []) => set({
         selectedFileIds: new Set(fileIds),
-        selectedFolderIds: new Set(folderIds)
+        selectedFolderIds: new Set(folderIds),
+        // Anchor at the first id so a subsequent shift-click extends from the top.
+        lastSelectedFileId: fileIds[0] ?? null,
+    }),
+    /**
+     * Windows-style shift-range select.
+     * `idList` is the currently displayed file list in display order (already
+     * folder-filtered and search-filtered). `fromId` is the anchor (the last
+     * file that was single- or ctrl-clicked); `toId` is the file the user just
+     * shift-clicked. The range between them (inclusive, both ends) is added to
+     * the existing selection. The anchor is left untouched so the user can
+     * extend the range with another shift-click.
+     *
+     * Returns silently if either id is missing from the list (e.g. the anchor
+     * was on a different page or section).
+     */
+    selectFileRange: (idList: number[], fromId: number, toId: number) => set((state) => {
+        const fromIdx = idList.indexOf(fromId);
+        const toIdx = idList.indexOf(toId);
+        if (fromIdx === -1 || toIdx === -1) return state;
+        const lo = Math.min(fromIdx, toIdx);
+        const hi = Math.max(fromIdx, toIdx);
+        const rangeIds = idList.slice(lo, hi + 1);
+        const next = new Set(state.selectedFileIds);
+        for (const id of rangeIds) next.add(id);
+        return { selectedFileIds: next };
     }),
 
     // View mode

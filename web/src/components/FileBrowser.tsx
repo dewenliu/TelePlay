@@ -28,6 +28,11 @@ export default function FileBrowser() {
         selectFolder,
         clearSelection,
         selectAll,
+        // shift-range select (Windows-style). Anchor is updated by selectFile replace/add
+        // paths; range-click does NOT update the anchor so the user can extend the range
+        // with subsequent shift-clicks.
+        lastSelectedFileId,
+        selectFileRange,
         viewMode,
         setViewMode,
         previewFile,
@@ -694,7 +699,13 @@ export default function FileBrowser() {
                                             folder={folder}
                                             viewMode={viewMode}
                                             selected={selectedFolderIds.has(folder.id)}
-                                            onSelect={(multi) => selectFolder(folder.id, multi)}
+                                            onSelect={(mode) => {
+                                                // Folders only support 'add' (ctrl/cmd). shift-click
+                                                // on a folder opens it, same as a plain click —
+                                                // shift-range is for files only.
+                                                if (mode === 'replace') onOpen();
+                                                else selectFolder(folder.id, true);
+                                            }}
                                             onOpen={() => navigateToFolder(folder)}
                                             onFileDrop={handleFileDrop}
                                         />
@@ -707,7 +718,25 @@ export default function FileBrowser() {
                                             file={file}
                                             viewMode={viewMode}
                                             selected={selectedFileIds.has(file.id)}
-                                            onSelect={(multi) => selectFile(file.id, multi)}
+                                            onSelect={(mode) => {
+                                                if (mode === 'replace') {
+                                                    selectFile(file.id, false);
+                                                } else if (mode === 'add') {
+                                                    selectFile(file.id, true);
+                                                } else if (mode === 'range') {
+                                                    // Windows-style shift-range select. The anchor
+                                                    // (lastSelectedFileId) is set by replace/add
+                                                    // paths in the store; range-click does NOT
+                                                    // update the anchor so the user can extend the
+                                                    // range with subsequent shift-clicks.
+                                                    if (lastSelectedFileId === null) {
+                                                        selectFile(file.id, false);
+                                                    } else {
+                                                        const list = (displayFiles ?? []).map(f => f.id);
+                                                        selectFileRange(list, lastSelectedFileId, file.id);
+                                                    }
+                                                }
+                                            }}
                                             onPlay={() => handleFileOpen(file)}
                                         />
                                     ))}

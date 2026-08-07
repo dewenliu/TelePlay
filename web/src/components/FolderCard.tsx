@@ -10,7 +10,7 @@ interface FolderCardProps {
     folder: Folder;
     viewMode: 'grid' | 'list';
     selected?: boolean;
-    onSelect?: (multi: boolean) => void;
+    onSelect?: (mode: 'replace' | 'add' | 'range') => void;
     onOpen: () => void;
     onFileDrop: (fileId: number, folderId: number) => void;
 }
@@ -29,10 +29,10 @@ export default function FolderCard({ folder, viewMode, selected, onSelect, onOpe
     };
 
     const handleClick = (e: React.MouseEvent) => {
-        if (onSelect && (e.ctrlKey || e.metaKey || e.shiftKey)) {
+        if (onSelect && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             e.stopPropagation();
-            onSelect(true);
+            onSelect('add');
         } else {
             onOpen();
         }
@@ -41,7 +41,7 @@ export default function FolderCard({ folder, viewMode, selected, onSelect, onOpe
     const handleSelectClick = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        onSelect?.(true);
+        onSelect?.('add');
     };
 
     // Drop handlers

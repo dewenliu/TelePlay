@@ -5,11 +5,18 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { X, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Download, ExternalLink, AlertTriangle, Copy, PictureInPicture2, Gauge, ChevronDown, ChevronUp } from 'lucide-react';
 import { TelegramFile, formatDuration, useUpdateProgress, useFile, api } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import ImagePreview from './ImagePreview';
 
 export default function MediaPlayer() {
     const { previewFile: file, setPreviewFile, isPlayerMinimized, setPlayerMinimized } = useAppStore();
-    
+
     if (!file) return null;
+
+    // Images don't need the video/audio player machinery (no progress, no
+    // controls, no public link, no PiP). Hand off to a dedicated viewer.
+    if (file.file_type === 'image') {
+        return <ImagePreview file={file} onClose={() => setPreviewFile(null)} />;
+    }
 
     return <MediaPlayerContent file={file} onClose={() => setPreviewFile(null)} isMinimized={isPlayerMinimized} setMinimized={setPlayerMinimized} />;
 }
@@ -43,6 +50,7 @@ function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaP
     const { mutate: updateProgress } = useUpdateProgress();
 
     const isVideo = file.file_type === 'video';
+    const isImage = file.file_type === 'image';
 
     // Auto-ensure public link exists for VLC/Download/Copy
     useEffect(() => {
@@ -287,8 +295,18 @@ function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaP
     const relativeThumbnailUrl = file.thumbnail_url ? `${file.thumbnail_url}?token=${token}` : null;
     const authorizedThumbnailUrl = relativeThumbnailUrl ? getAbsoluteUrl(relativeThumbnailUrl) : null;
 
-    // Common Media Element
-    const MediaElement = isVideo ? (
+    // Common Media Element. Image files get a plain <img>; video gets <video>;
+    // everything else (audio, document) falls through to <audio>. The video
+    // and audio branches share a ref (HTMLVideoElement / HTMLAudioElement both
+    // expose the events we need) and a common set of media event handlers.
+    const MediaElement = isImage ? (
+        <img
+            src={authorizedStreamUrl}
+            alt={file.file_name}
+            className={`max-w-full max-h-full w-full h-full object-contain ${isMinimized ? 'hidden' : ''}`}
+            draggable={false}
+        />
+    ) : isVideo ? (
         <video
             ref={videoRef}
             src={authorizedStreamUrl}
@@ -422,7 +440,7 @@ function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaP
                             {authorizedThumbnailUrl ? (
                                 <img src={authorizedThumbnailUrl} alt="Thumb" className="w-full h-full object-cover" />
                             ) : (
-                                isVideo ? <span className="text-2xl">🎬</span> : <span className="text-2xl">🎵</span>
+                                isImage ? <span className="text-2xl">🖼️</span> : isVideo ? <span className="text-2xl">🎬</span> : <span className="text-2xl">🎵</span>
                             )}
                         </div>
                         <div className="truncate flex-1 min-w-0">

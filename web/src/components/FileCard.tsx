@@ -9,7 +9,10 @@ interface FileCardProps {
     file: TelegramFile;
     viewMode: 'grid' | 'list';
     selected: boolean;
-    onSelect: (multi: boolean) => void;
+    // 'replace' = clear others, select this one (normal click)
+    // 'add' = toggle this one, keep others (ctrl/cmd-click)
+    // 'range' = select from anchor to this one (shift-click), only meaningful for files
+    onSelect: (mode: 'replace' | 'add' | 'range') => void;
     onPlay: () => void;
 }
 
@@ -36,7 +39,13 @@ export default function FileCard({
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        onSelect(e.ctrlKey || e.metaKey);
+        if (e.shiftKey) {
+            onSelect('range');
+        } else if (e.ctrlKey || e.metaKey) {
+            onSelect('add');
+        } else {
+            onSelect('replace');
+        }
     };
 
     const handleDoubleClick = (e: React.MouseEvent) => {
@@ -66,6 +75,17 @@ export default function FileCard({
             case 'image': return <Image className="w-3 h-3 text-emerald-400" />;
             default: return <FileText className="w-3 h-3 text-blue-400" />;
         }
+    };
+
+    // Format ISO timestamp as "YYYY-MM-DD HH:MM" in the user's local timezone.
+    // Mirrors the style of formatFileSize / formatDuration so list-view rows
+    // stay consistent. When the i18n refactor (plan A) lands, this can be
+    // moved to lib/format.ts and a locale-aware variant can replace it.
+    const formatDate = (iso: string): string => {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     };
 
     if (viewMode === 'list') {
@@ -98,6 +118,8 @@ export default function FileCard({
                         </span>
                         <span className="w-1 h-1 rounded-full bg-dark-600"></span>
                         <span>{formatFileSize(file.file_size)}</span>
+                        <span className="w-1 h-1 rounded-full bg-dark-600"></span>
+                        <span>{formatDate(file.updated_at)}</span>
                         {file.duration && (
                             <>
                                 <span className="w-1 h-1 rounded-full bg-dark-600"></span>
