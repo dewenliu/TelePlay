@@ -215,13 +215,13 @@ function LoginPage() {
                             </div>
                         )}
 
-                        <p
-                            className="text-xs text-dark-500 mt-4"
-                            dangerouslySetInnerHTML={{
-                                __html: t('login.botHint', { cmd: `<span class="text-primary-400 font-mono bg-dark-800/50 px-1.5 py-0.5 rounded">/login ${code || 'CODE'}</span>` })
-                                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                            }}
-                        />
+                        <p className="text-xs text-dark-500 mt-4">
+                            {t('login.botHintBefore')}
+                            <span className="text-primary-400 font-mono bg-dark-800/50 px-1.5 py-0.5 rounded">
+                                /login {code || 'CODE'}
+                            </span>
+                            {t('login.botHintAfter')}
+                        </p>
                     </div>
 
                     <div className="relative">

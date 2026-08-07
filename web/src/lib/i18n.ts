@@ -41,6 +41,8 @@ const zh: Dict = {
   'login.verifying': '正在验证…',
   'login.waitingConfirm': '等待确认中…',
   'login.botHint': '向 Bot 发送 {cmd} 即可获取登录码',
+  'login.botHintBefore': '向 Bot 发送 ',
+  'login.botHintAfter': ' 即可获取登录码',
   'login.orOpenBot': '或直接打开 Bot',
   'login.invalidCode': '登录码无效',
 
@@ -177,6 +179,8 @@ const en: Dict = {
   'login.verifying': 'Verifying…',
   'login.waitingConfirm': 'Waiting for confirmation…',
   'login.botHint': 'Send {cmd} to the bot to get a code.',
+  'login.botHintBefore': 'Send ',
+  'login.botHintAfter': ' to the bot to get a code.',
   'login.orOpenBot': 'Or open bot directly',
   'login.invalidCode': 'Invalid code',
 
@@ -335,7 +339,7 @@ export function setLang(lang: Lang) {
  * Translate a key, with optional `{var}` interpolation.
  * Missing keys fall back to the key string itself so the UI still works in dev.
  */
-export function t(key: string, vars?: Record<string, string | number>): string {
+export function translate(key: string, vars?: Record<string, string | number>): string {
   const dict = DICTS[currentLang] || DICTS[DEFAULT_LANG];
   let s = dict[key];
   if (s === undefined) {
@@ -361,7 +365,7 @@ export function useT(): (key: string, vars?: Record<string, string | number>) =>
       subscribers.delete(fn);
     };
   }, []);
-  return useCallback((key, vars) => t(key, vars), []);
+  return useCallback((key, vars) => translate(key, vars), []);
 }
 
 /** Hook that returns the current language + a setter. */
