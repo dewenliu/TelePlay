@@ -627,7 +627,10 @@ export default function FileBrowser() {
                              <button
                                  onClick={handleRefresh}
                                  disabled={isLoading}
-                                 className={`p-1.5 rounded-md text-dark-400 hover:text-white hover:bg-white/[0.05] transition-all active:scale-95 ${isLoading ? 'animate-spin' : ''}`}
+                                 className={twMerge(
+    "p-1.5 rounded-md text-dark-400 hover:text-white hover:bg-white/[0.05] transition-all active:scale-95",
+    isLoading && 'animate-spin'
+  )}
                                  title={t('browser.refresh')}
                              >
                                  <RefreshCw className="w-4 h-4" />
