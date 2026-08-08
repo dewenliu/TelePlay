@@ -175,7 +175,7 @@ async def tv_folder_detail(
     parent_path = []
     if folder.parent_id:
         ancestors_result = await db.execute(
-            sql_text("
+            sql_text("""
                 WITH RECURSIVE ancestors AS (
                     SELECT id, name, parent_id, user_id, created_at, updated_at
                     FROM folders WHERE id = :start_id
@@ -186,7 +186,7 @@ async def tv_folder_detail(
                     WHERE a.parent_id IS NOT NULL
                 )
                 SELECT * FROM ancestors WHERE id != :start_id ORDER BY id
-            "), {"start_id": folder.parent_id}
+            """), {"start_id": folder.parent_id}
         )
         for row in ancestors_result:
             parent_path.append({
