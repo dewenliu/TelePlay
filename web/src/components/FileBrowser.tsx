@@ -92,16 +92,17 @@ export default function FileBrowser() {
         }
     }, [filesList, activeSection]);
 
-    // Watch React Query cache directly: if any ['files', ...] query changes (e.g. after a
-    // mutation we just did cache surgery on), drop any files that no longer belong to the
-    // current view (wrong folder / wrong filter) from the cumulative list. This is what
-    // makes the "move file → it disappears without F5" fix actually work.
-    const filesQueries = useQueryClient().getQueryCache().findAll({ queryKey: ['files'] });
+    // Watch the React Query cache for the CURRENT view only. When a mutation (e.g.
+    // move file) surgically removes a file from this view's cached page, drop it
+    // from the cumulative list too — without a full refetch/flash.
+    const currentQueryKey = ['files', currentFolderId ?? null, fileTypeFilter || undefined, searchQuery || undefined, page];
+    const currentFilesQuery = useQueryClient().getQueryCache().findAll({ queryKey: currentQueryKey });
     useEffect(() => {
         if (activeSection !== 'files') return;
-        // Recompute the "valid" set of file ids from the current view's first page cache.
-        // If the first page has been refetched and the file is gone there, it's gone.
-        const live = filesQueries
+        // Only look at the cache entry that matches the *current* folder/filter/page.
+        // Using all ['files', ...] entries would mix in other folders' IDs and
+        // wrongly drop the current folder's files when switching folders.
+        const live = currentFilesQuery
             .map((q) => q.state.data as FileListResponse | undefined)
             .filter((d): d is FileListResponse => !!d && Array.isArray(d.files));
         if (live.length === 0) return;
@@ -111,7 +112,7 @@ export default function FileBrowser() {
             const next = prev.filter((f) => liveIds.has(f.id));
             return next.length === prev.length ? prev : next;
         });
-    }, [filesQueries, activeSection]);
+    }, [currentFilesQuery, activeSection, currentFolderId, fileTypeFilter, searchQuery, page]);
 
     // Determine which files to show
     let displayFiles: TelegramFile[] | undefined;
@@ -524,14 +525,16 @@ export default function FileBrowser() {
         setHasMore(true);
     }, [currentFolderId, fileTypeFilter, searchQuery, activeSection]);
 
-    // 当过滤条件变化后，filesList 会重新拉取。此时直接用最新结果替换 allFiles，
-    // 避免上方"分页累积"useEffect 在过滤切换时仍走 append 分支，导致列表空或残留旧类型文件。
+    // 当 filesList 因 folder/filter/page 刘换而重新拉取返回时，用最新第一页结果
+    // 替换 allFiles，避免上方"分页累积"useEffect 在视图切换时仍走 append 分支。
+    // 依赖 filesList 而非 currentFolderId：folder 变化时 filesList 还是旧数据，
+    // 此时不应替换；只有当新数据真正返回时才替换。
     useEffect(() => {
-        if (filesList && activeSection === 'files') {
+        if (filesList && activeSection === 'files' && page === 1) {
             setAllFiles(filesList.files);
             setHasMore(filesList.page * filesList.per_page < filesList.total);
         }
-    }, [fileTypeFilter, searchQuery, currentFolderId]);
+    }, [filesList]);
 
 
     return (
