@@ -582,12 +582,19 @@ async def handle_file(client, message: Message):
         forwarded = await forward_to_storage_channel(message)
         
         # Extract file info
-        raw_filename = getattr(media, "file_name", None) or f"{file_type}_{message.id}"
+        raw_filename = getattr(media, "file_name", None) or ""
         # 对于图片，PhotoSize 没有 thumbs/file_name/mime_type/duration 等属性，
         # 用 file_id 本身作为缩略图；其他类型从 media.thumbs 取。
         if file_type == "image":
             thumb_file_id = _photo_thumb_file_id
-            photo_mime = "image/jpeg"
+            # PhotoSize 没有 file_name/mime_type。Telegram photo 一律 JPEG，
+            # 但 document 类型图片会带 file_name 和 mime_type。对无 file_name 的图片，
+            # 根据实际格式补全扩展名，确保下载后能正常打开。
+            photo_mime = getattr(media, "mime_type", None) or "image/jpeg"
+            if not raw_filename:
+                ext_map = {"image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png",
+                           "image/webp": ".webp", "image/gif": ".gif", "image/bmp": ".bmp"}
+                raw_filename = f"image_{message.id}{ext_map.get(photo_mime, '.jpg')}"
         else:
             thumb_file_id = media.thumbs[0].file_id if getattr(media, "thumbs", None) else None
             photo_mime = getattr(media, "mime_type", None)
