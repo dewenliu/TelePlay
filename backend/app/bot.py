@@ -113,9 +113,7 @@ async def check_auth(client, message: Message):
         # But for /start, we should give a polite rejection
         if message.text and message.text.startswith("/start"):
             await message.reply(
-                "🚫 **Access Restricted**\n\n"
-                "Sorry, this bot is limited to authorized users only.\n"
-                f"Your Telegram ID: `{message.from_user.id}`"
+                "This bot is not available for your account."
             )
         
         # Stop further processing of this message
