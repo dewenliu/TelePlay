@@ -519,7 +519,7 @@ export default function FileBrowser() {
             setAllFiles(filesList.files);
             setHasMore(filesList.page * filesList.per_page < filesList.total);
         }
-    }, [filesList]);
+    }, [filesList, activeSection, currentFolderId, fileTypeFilter, searchQuery]);
 
 
     return (
