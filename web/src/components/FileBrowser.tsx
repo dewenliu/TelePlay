@@ -2,7 +2,7 @@
  * Main FileBrowser component - the core of the web interface
  */
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, Film, Music, Image as ImageIcon, FileText, Menu, Upload, Archive } from 'lucide-react';
+import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, ArrowDown, ArrowUpDown, Film, Music, Image as ImageIcon, FileText, Menu, Upload, Archive, Calendar, HardDrive } from 'lucide-react';
 import { useFiles, useFolders, useUpdateFile, useUpdateFolder, useDeleteFolder, useDeleteFiles, useMoveFiles, TelegramFile, Folder, FileListResponse, useRecentFiles, useContinueWatching, useDeleteFolders, useMoveFolders } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { useQueryClient } from '@tanstack/react-query';
@@ -50,6 +50,10 @@ export default function FileBrowser() {
         setSearchQuery,
         fileTypeFilter,
         setFileTypeFilter,
+        sortBy,
+        setSortBy,
+        sortOrder,
+        setSortOrder,
         renameFile,
         setRenameFile,
         renameFolder,
@@ -122,6 +126,24 @@ export default function FileBrowser() {
     } else {
         displayFiles = allFiles;
         isLoading = filesLoading;
+    }
+
+    // Apply client-side sorting
+    if (displayFiles && displayFiles.length > 1) {
+        const sorted = [...displayFiles];
+        sorted.sort((a, b) => {
+            let cmp = 0;
+            if (sortBy === 'name') {
+                cmp = a.file_name.localeCompare(b.file_name);
+            } else if (sortBy === 'size') {
+                cmp = a.file_size - b.file_size;
+            } else {
+                // date — compare ISO timestamps
+                cmp = (a.created_at || '').localeCompare(b.created_at || '');
+            }
+            return sortOrder === 'asc' ? cmp : -cmp;
+        });
+        displayFiles = sorted;
     }
 
     // Folders only show in 'files' mode
@@ -646,6 +668,55 @@ export default function FileBrowser() {
                              >
                                  <List className="w-4 h-4" />
                              </button>
+                         </div>
+
+                         {/* Sort buttons */}
+                         <div className="relative" data-sort-menu>
+                             <button
+                                 onClick={() => {
+                                     const menu = document.querySelector('[data-sort-dropdown]');
+                                     if (menu) menu.classList.toggle('hidden');
+                                     else {
+                                         const el = document.createElement('div');
+                                         el.setAttribute('data-sort-dropdown', '');
+                                     }
+                                 }}
+                                 className="p-1.5 rounded-md text-dark-400 hover:text-white hover:bg-white/[0.05] transition-all bg-dark-800/50 border border-white/[0.06]"
+                                 title={t('browser.sortByName')}
+                             >
+                                 <ArrowUpDown className="w-4 h-4" />
+                             </button>
+                             <div className="absolute right-0 top-full mt-1 z-50 bg-dark-900 border border-white/10 rounded-lg shadow-2xl py-1 min-w-[160px] hidden" data-sort-dropdown>
+                                 {[
+                                     { key: 'name', label: t('browser.sortByName'), icon: <FileText className="w-3.5 h-3.5" /> },
+                                     { key: 'date', label: t('browser.sortByDate'), icon: <Calendar className="w-3.5 h-3.5" /> },
+                                     { key: 'size', label: t('browser.sortBySize'), icon: <HardDrive className="w-3.5 h-3.5" /> },
+                                 ].map((item) => (
+                                     <button
+                                         key={item.key}
+                                         onClick={() => {
+                                             setSortBy(item.key as any);
+                                             (document.querySelector('[data-sort-dropdown]') as HTMLElement)?.classList.add('hidden');
+                                         }}
+                                         className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${sortBy === item.key ? 'text-primary-400 bg-primary-500/10' : 'text-dark-300 hover:text-white hover:bg-white/5'}`}
+                                     >
+                                         {item.icon}
+                                         {item.label}
+                                         {sortBy === item.key && (sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 ml-auto" /> : <ArrowDown className="w-3.5 h-3.5 ml-auto" />)}
+                                     </button>
+                                 ))}
+                                 <div className="w-full h-px bg-white/5 my-1"></div>
+                                 <button
+                                     onClick={() => {
+                                         setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                                         (document.querySelector('[data-sort-dropdown]') as HTMLElement)?.classList.add('hidden');
+                                     }}
+                                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors text-dark-300 hover:text-white hover:bg-white/5`}
+                                 >
+                                     {sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                                     {sortOrder === 'asc' ? t('browser.sortAsc') : t('browser.sortDesc')}
+                                 </button>
+                             </div>
                          </div>
 
 
