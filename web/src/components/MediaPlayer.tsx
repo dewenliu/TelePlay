@@ -36,8 +36,8 @@ function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaP
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
+    const [volume, setVolume] = useState(0.5);
+    const [isMuted, setIsMuted] = useState(true);
     const [showControls, setShowControls] = useState(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -273,6 +273,7 @@ function MediaPlayerContent({ file, onClose, isMinimized, setMinimized }: MediaP
     // Auto-play effect
     useEffect(() => {
         if (videoRef.current && !error) {
+            videoRef.current.muted = true;
             videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
         }
     }, [error, file.id]); // Re-run when file changes

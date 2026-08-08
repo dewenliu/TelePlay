@@ -282,7 +282,36 @@ export const useUpdateFile = () => {
         // Auto-invalidating every ['files'] query causes the cumulative `allFiles` list
         // to refetch every page and produces a visible flash. FileBrowser / GlobalContextMenu
         // handle the cache updates explicitly after a successful mutation.
-        onSuccess: () => {},
+        onSuccess: ({ result, data }, _vars) => {
+            // If this was a rename (file_name changed), update the cached file in-place
+            if (data.file_name !== undefined) {
+                const queries = queryClient.getQueryCache().findAll({ queryKey: ['files'] });
+                queries.forEach((q) => {
+                    const cached = q.state.data as FileListResponse | undefined;
+                    if (cached && Array.isArray(cached.files)) {
+                        const next = cached.files.map((f) => f.id === result.id ? { ...f, file_name: result.file_name } : f);
+                        queryClient.setQueryData(q.queryKey, { ...cached, files: next });
+                    }
+                });
+            }
+            // If this was a move (folder_id changed), invalidate files + folders so lists and counts refresh
+            if (data.folder_id !== undefined) {
+                queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'active' });
+                queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' });
+                queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'active' });
+                // Optimistic: remove the moved file from all cached lists
+                const queries = queryClient.getQueryCache().findAll({ queryKey: ['files'] });
+                queries.forEach((q) => {
+                    const cached = q.state.data as FileListResponse | undefined;
+                    if (cached && Array.isArray(cached.files)) {
+                        const next = cached.files.filter((f) => f.id !== result.id);
+                        if (next.length !== cached.files.length) {
+                            queryClient.setQueryData(q.queryKey, { ...cached, files: next, total: Math.max(0, cached.total - 1) });
+                        }
+                    }
+                });
+            }
+        },
     });
 };
 
@@ -310,10 +339,10 @@ export const useDeleteFiles = () => {
             // with the server after deletions. Without the predicate function, React Query
             // only invalidates queries whose key is *exactly* ['files'], missing the
             // parameterized ones like ['files', 5, 'video', 'foo', 1] that FileBrowser uses.
-            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' }); // Files might be inside folders affecting counts
-            queryClient.invalidateQueries({ queryKey: ['storage'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' }); // Files might be inside folders affecting counts
+            queryClient.invalidateQueries({ queryKey: ['storage'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'active' });
             // Remove the deleted ids from any active query cache so the UI updates immediately,
             // even before the refetched data lands. We do this by setting fresh data on the
             // current page query.
@@ -346,9 +375,9 @@ export const useMoveFiles = () => {
             // Same predicate fix as useDeleteFiles: invalidate every ['files', ...] query so
             // the cumulative list re-syncs. Without this, FileBrowser's `allFiles` keeps the
             // moved file visible until manual refresh.
-            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'active' });
             // Optimistic-ish UI update: drop the moved ids from every cached files list
             // immediately so the user doesn't see stale rows waiting for the refetch.
             const queries = queryClient.getQueryCache().findAll({ queryKey: ['files'] });
@@ -418,9 +447,9 @@ export const useMoveFolders = () => {
             await api.post('/folders/batch-move', { ids, folder_id: folderId });
         },
         onSuccess: (_data, vars) => {
-            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'active' });
             // Drop the moved folder ids from every cached folders list so the UI updates
             // immediately instead of waiting for a refetch.
             const idSet = new Set(vars.ids);
@@ -512,10 +541,10 @@ export const useDeleteFolders = () => {
             await api.post('/folders/batch-delete', ids as any);
         },
         onSuccess: (_data, ids) => {
-            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['storage'], refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['folders'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['folderTree'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['files'], refetchType: 'active' });
+            queryClient.invalidateQueries({ queryKey: ['storage'], refetchType: 'active' });
             const idSet = new Set(ids);
             const queries = queryClient.getQueryCache().findAll({ queryKey: ['folders'] });
             queries.forEach((q) => {
