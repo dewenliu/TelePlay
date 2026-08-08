@@ -34,7 +34,7 @@ export default function FileCard({
         e.preventDefault();
         e.stopPropagation();
         if (!selected) {
-            onSelect(false);
+            onSelect('replace');
         }
         setActiveContextMenu({ type: 'file', item: file, x: e.clientX, y: e.clientY });
     };

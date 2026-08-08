@@ -210,7 +210,7 @@ export default function GlobalContextMenu() {
                             </>
                         ) : (
                             <>
-                                {(activeContextMenu.item.file_type === 'video' || activeContextMenu.item.file_type === 'audio') && (
+                                {(activeContextMenu.item.file_type === 'video' || activeContextMenu.item.file_type === 'audio' || activeContextMenu.item.file_type === 'image') && (
                                     <button className="context-menu-item w-full text-left" onClick={() => handleAction(() => handlePlay(activeContextMenu.item as TelegramFile))}>
                                         <Play className="w-4 h-4" />
                                         {t('ctx.play')}

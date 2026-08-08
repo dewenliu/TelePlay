@@ -554,7 +554,15 @@ async def handle_file(client, message: Message):
             or doc_mime.startswith("application/x-abiword")
         )
         is_doc_ext = any(doc_name.endswith(ext) for ext in doc_exts)
-        if is_doc_mime or is_doc_ext:
+        # 以 document 方式发送的图片应归为 image 而非 other
+        image_mime_prefixes = ("image/",)
+        image_exts = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".svg", ".heic", ".heif")
+        is_image_mime = any(doc_mime.startswith(p) for p in image_mime_prefixes)
+        is_image_ext = any(doc_name.endswith(ext) for ext in image_exts)
+        if is_image_mime or is_image_ext:
+            file_type = "image"
+            _photo_thumb_file_id = media.thumbs[0].file_id if getattr(media, "thumbs", None) else None
+        elif is_doc_mime or is_doc_ext:
             file_type = "document"
         else:
             file_type = "other"
@@ -917,7 +925,12 @@ async def handle_callback(client, callback: CallbackQuery):
         folder_id = int(folder_id) if folder_id != "0" else None
         
         async with async_session() as db:
-            result = await db.execute(select(File).where(File.id == file_id))
+            result = await db.execute(
+                select(File).where(
+                    File.id == file_id,
+                    File.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             file = result.scalar_one_or_none()
             
             if file:
@@ -925,7 +938,7 @@ async def handle_callback(client, callback: CallbackQuery):
                 await db.commit()
                 await callback.answer("✅ File moved!", show_alert=True)
             else:
-                await callback.answer("File not found", show_alert=True)
+                await callback.answer("File not found or access denied", show_alert=True)
                 
     # ============== New File Management Callbacks ==============
     
@@ -933,11 +946,16 @@ async def handle_callback(client, callback: CallbackQuery):
         file_id = int(data.split(":")[1])
         
         async with async_session() as db:
-            result = await db.execute(select(File).where(File.id == file_id))
+            result = await db.execute(
+                select(File).where(
+                    File.id == file_id,
+                    File.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             file = result.scalar_one_or_none()
             
             if not file:
-                await callback.answer("File not found", show_alert=True)
+                await callback.answer("File not found or access denied", show_alert=True)
                 return
             
             current_name = file.file_name
@@ -967,7 +985,12 @@ async def handle_callback(client, callback: CallbackQuery):
                 return
             
             async with async_session() as db:
-                result = await db.execute(select(File).where(File.id == file_id))
+                result = await db.execute(
+                    select(File).where(
+                        File.id == file_id,
+                        File.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                    )
+                )
                 file = result.scalar_one_or_none()
                 
                 if file:
@@ -975,7 +998,7 @@ async def handle_callback(client, callback: CallbackQuery):
                     await db.commit()
                     await reply.reply(f"✅ File renamed to **{new_name}**")
                 else:
-                    await reply.reply("❌ File not found.")
+                    await reply.reply("❌ File not found or access denied.")
                     
         except Exception as e:
             if "timeout" in str(e).lower():
@@ -985,11 +1008,16 @@ async def handle_callback(client, callback: CallbackQuery):
         file_id = int(data.split(":")[1])
         
         async with async_session() as db:
-            result = await db.execute(select(File).where(File.id == file_id))
+            result = await db.execute(
+                select(File).where(
+                    File.id == file_id,
+                    File.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             file = result.scalar_one_or_none()
             
             if not file:
-                await callback.answer("File not found", show_alert=True)
+                await callback.answer("File not found or access denied", show_alert=True)
                 return
                 
             file_name = file.file_name
@@ -1013,11 +1041,16 @@ async def handle_callback(client, callback: CallbackQuery):
         file_id = int(data.split(":")[1])
         
         async with async_session() as db:
-            result = await db.execute(select(File).where(File.id == file_id))
+            result = await db.execute(
+                select(File).where(
+                    File.id == file_id,
+                    File.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             file = result.scalar_one_or_none()
             
             if not file:
-                await callback.answer("File not found", show_alert=True)
+                await callback.answer("File not found or access denied", show_alert=True)
                 return
             
             file_name = file.file_name
@@ -1038,11 +1071,16 @@ async def handle_callback(client, callback: CallbackQuery):
         folder_id = int(data.split(":")[1])
         
         async with async_session() as db:
-            result = await db.execute(select(Folder).where(Folder.id == folder_id))
+            result = await db.execute(
+                select(Folder).where(
+                    Folder.id == folder_id,
+                    Folder.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             folder = result.scalar_one_or_none()
             
             if not folder:
-                await callback.answer("Folder not found", show_alert=True)
+                await callback.answer("Folder not found or access denied", show_alert=True)
                 return
             
             current_name = folder.name
@@ -1072,7 +1110,12 @@ async def handle_callback(client, callback: CallbackQuery):
                 return
             
             async with async_session() as db:
-                result = await db.execute(select(Folder).where(Folder.id == folder_id))
+                result = await db.execute(
+                    select(Folder).where(
+                        Folder.id == folder_id,
+                        Folder.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                    )
+                )
                 folder = result.scalar_one_or_none()
                 
                 if folder:
@@ -1080,7 +1123,7 @@ async def handle_callback(client, callback: CallbackQuery):
                     await db.commit()
                     await reply.reply(f"✅ Folder renamed to **{new_name}**")
                 else:
-                    await reply.reply("❌ Folder not found.")
+                    await reply.reply("❌ Folder not found or access denied.")
                     
         except Exception as e:
             if "timeout" in str(e).lower():
@@ -1090,11 +1133,16 @@ async def handle_callback(client, callback: CallbackQuery):
         folder_id = int(data.split(":")[1])
         
         async with async_session() as db:
-            result = await db.execute(select(Folder).where(Folder.id == folder_id))
+            result = await db.execute(
+                select(Folder).where(
+                    Folder.id == folder_id,
+                    Folder.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             folder = result.scalar_one_or_none()
             
             if not folder:
-                await callback.answer("Folder not found", show_alert=True)
+                await callback.answer("Folder not found or access denied", show_alert=True)
                 return
             
             folder_name = folder.name
@@ -1129,11 +1177,16 @@ async def handle_callback(client, callback: CallbackQuery):
         folder_id = int(data.split(":")[1])
         
         async with async_session() as db:
-            result = await db.execute(select(Folder).where(Folder.id == folder_id))
+            result = await db.execute(
+                select(Folder).where(
+                    Folder.id == folder_id,
+                    Folder.user_id == select(User.id).where(User.telegram_id == callback.from_user.id).scalar_subquery()
+                )
+            )
             folder = result.scalar_one_or_none()
             
             if not folder:
-                await callback.answer("Folder not found", show_alert=True)
+                await callback.answer("Folder not found or access denied", show_alert=True)
                 return
             
             folder_name = folder.name

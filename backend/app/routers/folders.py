@@ -222,6 +222,19 @@ async def update_folder(
         if update_data.parent_id == folder_id:
             raise HTTPException(status_code=400, detail="Cannot move folder into itself")
         
+        # Detect indirect circular nesting (A -> B -> A)
+        if update_data.parent_id != 0 and update_data.parent_id is not None:
+            ancestor_id = update_data.parent_id
+            visited = set()
+            while ancestor_id is not None and ancestor_id not in visited:
+                if ancestor_id == folder_id:
+                    raise HTTPException(status_code=400, detail="Cannot move folder: creates circular reference")
+                visited.add(ancestor_id)
+                ancestor_result = await db.execute(
+                    select(Folder.parent_id).where(Folder.id == ancestor_id, Folder.user_id == current_user.id)
+                )
+                ancestor_id = ancestor_result.scalar_one_or_none()
+        
         # Verify target parent folder belongs to current user (security check)
         if update_data.parent_id != 0:
             parent_check = await db.execute(

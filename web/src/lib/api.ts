@@ -71,21 +71,6 @@ export interface StorageStats {
     limit: number;
 }
 
-export interface StorageStats {
-    total_size: number;
-    limit: number;
-}
-
-export interface StorageStats {
-    total_size: number;
-    limit: number;
-}
-
-export interface StorageStats {
-    total_size: number;
-    limit: number;
-}
-
 export interface AuthResponse {
     access_token: string;
     refresh_token: string;

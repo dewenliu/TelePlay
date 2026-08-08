@@ -3,7 +3,7 @@
  */
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { FolderPlus, Grid, List, Search, ChevronRight, Home, RefreshCw, Clipboard, ArrowUp, Film, Music, Image as ImageIcon, FileText, Menu, Upload, Archive } from 'lucide-react';
-import { useFiles, useFolders, useUpdateFile, useUpdateFolder, useDeleteFolder, useDeleteFiles, useMoveFiles, TelegramFile, Folder, useRecentFiles, useContinueWatching, useDeleteFolders, useMoveFolders } from '../lib/api';
+import { useFiles, useFolders, useUpdateFile, useUpdateFolder, useDeleteFolder, useDeleteFiles, useMoveFiles, TelegramFile, Folder, FileListResponse, useRecentFiles, useContinueWatching, useDeleteFolders, useMoveFolders } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useT } from '../lib/i18n';
@@ -15,6 +15,7 @@ import DeleteConfirmModal from './DeleteConfirmModal';
 import RenameModal from './RenameModal';
 import Sidebar from './Sidebar';
 import Toasts from './Toasts';
+import UploadModal from './UploadModal';
 
 export default function FileBrowser() {
     const {
@@ -179,7 +180,7 @@ export default function FileBrowser() {
     const navigateToFolder = useCallback((folder: Folder | null) => {
         if (folder === null) {
             setCurrentFolderId(null);
-            setBreadcrumbs([{ id: null, name: t('browser.myFiles') }]);
+            setBreadcrumbs([{ id: null, name: 'sidebar.files' }]);
         } else {
             setCurrentFolderId(folder.id);
             setBreadcrumbs([...breadcrumbs, { id: folder.id, name: folder.name }]);
@@ -556,7 +557,7 @@ export default function FileBrowser() {
                                             }`}
                                     >
                                         {index === 0 && <Home className="w-3.5 h-3.5" />}
-                                        {crumb.name}
+                                        {index === 0 ? t(crumb.name) : crumb.name}
                                     </button>
                                 </div>
                             ))}

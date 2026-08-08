@@ -172,6 +172,20 @@ const zh: Dict = {
   'common.close': '关闭',
   'common.imageLoadError': '图片加载失败，请尝试下载查看',
   'common.resumedFrom': '从 {pos} 续播',
+
+  // Player
+  'player.playbackNotSupported': '不支持此格式',
+  'player.openInVlc': '用 VLC 打开',
+  'player.copyUrl': '复制链接',
+  'player.download': '下载',
+  'player.close': '关闭',
+  'player.originalArtwork': '原始封面',
+  'player.maximize': '最大化',
+  'player.minimize': '最小化',
+  'player.playbackSpeed': '播放速度',
+  'player.pictureInPicture': '画中画',
+  'player.fullscreen': '全屏',
+  'player.exitFullscreen': '退出全屏',
 };
 
 const en: Dict = {
@@ -326,6 +340,20 @@ const en: Dict = {
   'common.close': 'Close',
   'common.imageLoadError': 'Image failed to load. Try downloading instead.',
   'common.resumedFrom': 'Resumed from {pos}',
+
+  // Player
+  'player.playbackNotSupported': 'Playback Not Supported',
+  'player.openInVlc': 'Open in VLC',
+  'player.copyUrl': 'Copy URL',
+  'player.download': 'Download',
+  'player.close': 'Close',
+  'player.originalArtwork': 'Original Artwork',
+  'player.maximize': 'Maximize',
+  'player.minimize': 'Minimize',
+  'player.playbackSpeed': 'Playback Speed',
+  'player.pictureInPicture': 'Picture in Picture',
+  'player.fullscreen': 'Fullscreen',
+  'player.exitFullscreen': 'Exit Fullscreen',
 };
 
 const DICTS: Record<Lang, Dict> = { zh, en };

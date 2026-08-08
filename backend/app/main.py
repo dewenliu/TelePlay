@@ -110,7 +110,6 @@ app.include_router(tv_router, prefix="/api")
 
 
 
-
 @app.get("/health")
 async def health():
     """Health check for container orchestration."""
@@ -134,8 +133,10 @@ async def serve_spa(full_path: str):
         raise HTTPException(status_code=404, detail="API Endpoint not found")
 
     # Check if the file exists in static directory (e.g. logo.png, favicon.ico)
-    static_file_path = f"app/static/{full_path}"
-    if os.path.exists(static_file_path) and os.path.isfile(static_file_path):
+    # 安全检查：用 realpath 解析后确认路径仍在 app/static/ 内，防止路径遍历攻击
+    static_dir = os.path.realpath("app/static")
+    static_file_path = os.path.realpath(f"app/static/{full_path}")
+    if static_file_path.startswith(static_dir + os.sep) and os.path.isfile(static_file_path):
         return FileResponse(static_file_path)
         
     # Serve index.html for generic SPA routes

@@ -170,26 +170,33 @@ async def tv_folder_detail(
     )
     files = files_result.scalars().all()
     
-    # Build parent path for breadcrumb navigation
+    # Build parent path for breadcrumb navigation (single query via recursive CTE)
+    from sqlalchemy import text as sql_text
     parent_path = []
-    current_folder = folder
-    while current_folder.parent_id:
-        parent_result = await db.execute(
-            select(Folder).where(Folder.id == current_folder.parent_id)
+    if folder.parent_id:
+        ancestors_result = await db.execute(
+            sql_text("
+                WITH RECURSIVE ancestors AS (
+                    SELECT id, name, parent_id, user_id, created_at, updated_at
+                    FROM folders WHERE id = :start_id
+                    UNION ALL
+                    SELECT f.id, f.name, f.parent_id, f.user_id, f.created_at, f.updated_at
+                    FROM folders f
+                    INNER JOIN ancestors a ON f.id = a.parent_id
+                    WHERE a.parent_id IS NOT NULL
+                )
+                SELECT * FROM ancestors WHERE id != :start_id ORDER BY id
+            "), {"start_id": folder.parent_id}
         )
-        parent = parent_result.scalar_one_or_none()
-        if parent:
-            parent_path.insert(0, {
-                "id": parent.id,
-                "name": parent.name,
-                "parent_id": parent.parent_id,
-                "user_id": parent.user_id,
-                "created_at": parent.created_at.isoformat() if parent.created_at else None,
-                "updated_at": parent.updated_at.isoformat() if parent.updated_at else None,
+        for row in ancestors_result:
+            parent_path.append({
+                "id": row.id,
+                "name": row.name,
+                "parent_id": row.parent_id,
+                "user_id": row.user_id,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+                "updated_at": row.updated_at.isoformat() if row.updated_at else None,
             })
-            current_folder = parent
-        else:
-            break
     
     return {
         "folder": {
