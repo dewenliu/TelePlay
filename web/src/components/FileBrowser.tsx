@@ -80,9 +80,10 @@ export default function FileBrowser() {
     const { data: cwFiles, isLoading: cwLoading, refetch: refetchCW } = useContinueWatching(50);
     
 
-    // For files section, accumulate files from all pages (分页加载累积，仅 page 变化时追加)
+    // For files section, accumulate files from pages > 1 (scroll pagination)
+    // Page 1 is handled by the replace effect below to avoid mixing folders
     useEffect(() => {
-        if (filesList && activeSection === 'files') {
+        if (filesList && activeSection === 'files' && page > 1) {
             setAllFiles(prev => {
                 const existingIds = new Set(prev.map(f => f.id));
                 const newFiles = filesList.files.filter(f => !existingIds.has(f.id));
@@ -90,29 +91,9 @@ export default function FileBrowser() {
             });
             setHasMore(filesList.page * filesList.per_page < filesList.total);
         }
-    }, [filesList, activeSection]);
+    }, [filesList, activeSection, page]);
 
-    // Watch the React Query cache for the CURRENT view only. When a mutation (e.g.
-    // move file) surgically removes a file from this view's cached page, drop it
-    // from the cumulative list too — without a full refetch/flash.
-    const currentQueryKey = ['files', currentFolderId ?? null, fileTypeFilter || undefined, searchQuery || undefined, page];
-    const currentFilesQuery = useQueryClient().getQueryCache().findAll({ queryKey: currentQueryKey });
-    useEffect(() => {
-        if (activeSection !== 'files') return;
-        // Only look at the cache entry that matches the *current* folder/filter/page.
-        // Using all ['files', ...] entries would mix in other folders' IDs and
-        // wrongly drop the current folder's files when switching folders.
-        const live = currentFilesQuery
-            .map((q) => q.state.data as FileListResponse | undefined)
-            .filter((d): d is FileListResponse => !!d && Array.isArray(d.files));
-        if (live.length === 0) return;
-        const liveIds = new Set<number>();
-        live.forEach((d) => d.files.forEach((f) => liveIds.add(f.id)));
-        setAllFiles((prev) => {
-            const next = prev.filter((f) => liveIds.has(f.id));
-            return next.length === prev.length ? prev : next;
-        });
-    }, [currentFilesQuery, activeSection, currentFolderId, fileTypeFilter, searchQuery, page]);
+
 
     // Determine which files to show
     let displayFiles: TelegramFile[] | undefined;
