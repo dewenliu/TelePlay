@@ -168,6 +168,9 @@ const zh: Dict = {
   'common.unknown': '未知',
   'common.copied': '已复制',
   'common.copy': '复制',
+  'common.download': '下载',
+  'common.close': '关闭',
+  'common.imageLoadError': '图片加载失败，请尝试下载查看',
   'common.resumedFrom': '从 {pos} 续播',
 };
 
@@ -319,6 +322,9 @@ const en: Dict = {
   'common.unknown': 'Unknown',
   'common.copied': 'Copied',
   'common.copy': 'Copy',
+  'common.download': 'Download',
+  'common.close': 'Close',
+  'common.imageLoadError': 'Image failed to load. Try downloading instead.',
   'common.resumedFrom': 'Resumed from {pos}',
 };
 

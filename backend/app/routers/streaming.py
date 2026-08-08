@@ -92,7 +92,10 @@ async def stream_file(
     
     # Determine content disposition
     mime_type = file.mime_type or "application/octet-stream"
-    disposition = "attachment" if download else ("inline" if ("video/" in mime_type or "audio/" in mime_type or "image/" in mime_type) else "attachment")
+    # 图片类型即使历史数据 mime_type 为空也强制 inline
+    inline_types = ("video/", "audio/", "image/")
+    is_inline = download == 0 and (file.file_type == "image" or any(t in mime_type for t in inline_types))
+    disposition = "attachment" if download else ("inline" if is_inline else "attachment")
     
     from urllib.parse import quote
     encoded_filename = quote(file.file_name)
@@ -234,7 +237,10 @@ async def stream_public_file(
     
     # Determine content disposition
     mime_type = file.mime_type or "application/octet-stream"
-    disposition = "attachment" if download else ("inline" if ("video/" in mime_type or "audio/" in mime_type or "image/" in mime_type) else "attachment")
+    # 图片类型即使历史数据 mime_type 为空也强制 inline
+    inline_types = ("video/", "audio/", "image/")
+    is_inline = download == 0 and (file.file_type == "image" or any(t in mime_type for t in inline_types))
+    disposition = "attachment" if download else ("inline" if is_inline else "attachment")
     
     from urllib.parse import quote
     encoded_filename = quote(file.file_name)
