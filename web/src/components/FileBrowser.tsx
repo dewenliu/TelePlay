@@ -468,17 +468,21 @@ export default function FileBrowser() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [
         previewFile, showNewFolder, showUpload, moveItems, deleteConfirm, 
-        selectedFileIds, displayFiles, breadcrumbs, clipboard, 
+        selectedFileIds, allFiles, breadcrumbs, clipboard, 
         currentFolderId, handlePaste, handleRefresh,
         setPreviewFile, setShowNewFolder, setShowUpload, setMoveItems, setDeleteConfirm, 
         clearSelection, selectAll, setRenameFile, navigateToBreadcrumb, setClipboard, folders
     ]);
 
     // Keep selectedFiles in sync with selectedFileIds
+    // NOTE: must not depend on displayFiles — it is a `let` that gets a new
+    // reference every render (sorted = [...displayFiles]), which would cause
+    // an infinite update loop. Use allFiles directly; the other sections
+    // (recent/continue_watching) do not support selection anyway.
     useEffect(() => {
-        const selectedFiles = displayFiles?.filter(f => selectedFileIds.has(f.id)) || [];
+        const selectedFiles = allFiles?.filter(f => selectedFileIds.has(f.id)) || [];
         setSelectedFiles(selectedFiles);
-    }, [selectedFileIds, displayFiles, setSelectedFiles]);
+    }, [selectedFileIds, allFiles, setSelectedFiles]);
 
     // Infinite scrolling
     useEffect(() => {
